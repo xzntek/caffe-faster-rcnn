@@ -1,4 +1,5 @@
 PROJECT := caffe
+API := api
 
 CONFIG_FILE := Makefile.config
 # Explicitly check for the config file, otherwise make -k will proceed anyway.
@@ -45,9 +46,9 @@ COMMON_FLAGS += -DCAFFE_VERSION=$(DYNAMIC_VERSION_MAJOR).$(DYNAMIC_VERSION_MINOR
 # Get all source files
 ##############################
 # CXX_SRCS are the source files excluding the test ones.
-CXX_SRCS := $(shell find src/$(PROJECT) ! -name "test_*.cpp" -name "*.cpp")
+CXX_SRCS := $(shell find src/$(PROJECT) src/$(API) ! -name "test_*.cpp" -name "*.cpp")
 # CU_SRCS are the cuda source files
-CU_SRCS := $(shell find src/$(PROJECT) ! -name "test_*.cu" -name "*.cu")
+CU_SRCS := $(shell find src/$(PROJECT) src/$(API) ! -name "test_*.cu" -name "*.cu")
 # TEST_SRCS are the test source files
 TEST_MAIN_SRC := src/$(PROJECT)/test/test_caffe_main.cpp
 TEST_SRCS := $(shell find src/$(PROJECT) -name "test_*.cpp")

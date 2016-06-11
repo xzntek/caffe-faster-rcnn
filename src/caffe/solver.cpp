@@ -215,9 +215,15 @@ void Solver<Dtype>::Step(int iters) {
     if (display) {
       float lapse = iteration_timer_.Seconds();
       float per_s = (iter_ - iterations_last_) / (lapse ? lapse : 1);
+      float remaining_time = per_s / param_.display() * (param_.max_iter() - iter_);
+      int remaining_hour = floor(remaining_time / 3600);
+      int remaining_min = round(remaining_time / 60 - remaining_hour * 60);
+      std::ostringstream text_time;
+      text_time << "[ " << iter_ << " / " << param_.max_iter() << " ] -> [ " << average_time << " s / "
+                << remaining_hour << ":" << remaining_min << " (H:M) ]";
       LOG_IF(INFO, Caffe::root_solver()) << "Iteration " << iter_
           << " (" << per_s << " iter/s, " << lapse << "s/"
-          << param_.display() << " iters), loss = " << smoothed_loss_;
+          << param_.display() << " iters), loss = " << smoothed_loss_ << "  " << text_time.str();
       iteration_timer_.Start();
       iterations_last_ = iter_;
       const vector<Blob<Dtype>*>& result = net_->output_blobs();
