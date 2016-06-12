@@ -408,6 +408,7 @@ message LayerParameter {
   // Xuanyi Add For Faster RCNN
   optional ROIPoolingParameter roi_pooling_param = 201;
   optional SmoothL1LossParameter smooth_l1_loss_param = 202;
+  optional PadChannelParameter pad_channel_param = 203;
 }
 
 // Xuanyi Add.2016.04.01
@@ -425,6 +426,10 @@ message SmoothL1LossParameter {
   //   0.5 * (sigma * x) ** 2    -- if x < 1.0 / sigma / sigma
   //   |x| - 0.5 / sigma / sigma -- otherwise
   optional float sigma = 1 [default = 1];
+}
+message PadChannelParameter {
+  // Specify the data source.
+  optional uint32 num_channels_to_pad = 1 [default = 0];
 }
 
 // Message that stores parameters used to apply transformation

@@ -219,8 +219,10 @@ void Solver<Dtype>::Step(int iters) {
       int remaining_hour = floor(remaining_time / 3600);
       int remaining_min = round(remaining_time / 60 - remaining_hour * 60);
       std::ostringstream text_time;
-      text_time << "[ " << iter_ << " / " << param_.max_iter() << " ] -> [ " << average_time << " s / "
+      text_time << "[ " << iter_ << " / " << param_.max_iter() << " ] -> [ " << std::setw(6) << average_time << " s / "
                 << remaining_hour << ":" << remaining_min << " (H:M) ]";
+      time_for_count.Start();
+
       LOG_IF(INFO, Caffe::root_solver()) << "Iteration " << iter_
           << " (" << per_s << " iter/s, " << lapse << "s/"
           << param_.display() << " iters), loss = " << smoothed_loss_ << "  " << text_time.str();

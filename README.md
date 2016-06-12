@@ -5,7 +5,7 @@
 - Add action recognition \[DONE\]
 - Add spatial transform network \[Not Started\]
 - Speed up\[DOING\]
-- With demos including all tasks above \^_\^
+- With demos including all tasks above ^_^
 
 ## Faster RCNN End-To-End
 
@@ -44,6 +44,10 @@ More details in the code.
 - git checkout dev
 - git rebase master 
 - git push -f origin dev
+
+**QA**
+- https://D-X-Y@bitbucket.org/D-X-Y/caffe-dev.git
+- When Get `error: RPC failed; result=22, HTTP code = 0`, use `git config http.postBuffer 524288000`, increases git buffer to 500mb
 
 # Caffe
 
