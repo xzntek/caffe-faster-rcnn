@@ -156,8 +156,8 @@ def resnet_cifar_pro(data, label, n_size=3):
 def prepare_data(lmdb, mean_file, batch_size=100, train=True):
     if train==True:
         data, label = L.Data(source=lmdb, backend=P.Data.LMDB, batch_size=batch_size, ntop=2,
-                name = 'data', ex_top = ['data','label'], mirror = True,
-                transform_param=dict(mean_file=mean_file, crop_size=28), include=dict(phase=getattr(caffe_pb2, 'TRAIN')))
+                name = 'data', ex_top = ['data','label'],
+                transform_param=dict(mean_file=mean_file, crop_size=28, mirror=True), include=dict(phase=getattr(caffe_pb2, 'TRAIN')))
     else:
         data, label = L.Data(source=lmdb, backend=P.Data.LMDB, batch_size=batch_size, ntop=2,
                 name = 'data', ex_top = ['data','label'],

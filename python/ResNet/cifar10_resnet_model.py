@@ -32,6 +32,10 @@ def parse_args():
     parser.add_argument('--model', dest='model',
                         help='model proto dir',
                         default='examples/cifar10_resnet', type=str)
+    parser.add_argument('--restype', dest='type',
+                        help='resnet type',
+                        default='original', type=str)
+    # support only two type original and identity
     args = parser.parse_args()
 
     return args
@@ -75,8 +79,14 @@ if __name__ == '__main__':
     test_data, test_label = wrap.prepare_data(args.lmdb_test, args.mean_file, args.batch_size_test, False)
 
 
-    #caffemodel = wrap.resnet_cifar_ori(test_data, test_label, args.resnet_N)
-    caffemodel = wrap.resnet_cifar_pro(test_data, test_label, args.resnet_N)
+    if args.type=='original':
+        print 'original resnet : %s' % args.type
+        caffemodel = wrap.resnet_cifar_ori(test_data, test_label, args.resnet_N)
+    elif args.type=='identity':
+        print 'identity-mapping resnet : %s\n' % args.type
+        caffemodel = wrap.resnet_cifar_pro(test_data, test_label, args.resnet_N)
+    else:
+        TypeError('Resnet type must be original or identity')
     
     name  = '"CIFAR10_Resnet_%d"' % (args.resnet_N*6+2)
     print 'Name: %s' % name

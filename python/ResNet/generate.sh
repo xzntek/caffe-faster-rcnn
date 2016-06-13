@@ -16,5 +16,5 @@
 #    --batch_size_train 128 \
 #    --batch_size_test  100 \
 #    --model      examples/cifar10_resnet/cifar10_resnet
-#python ./python/ResNet/cifar10_resnet_model.py --N 3 --model examples/original_resnet_cifar10
-python ./python/ResNet/cifar10_resnet_model.py --N 3 --model examples/proposed_resnet_cifar10
+python ./python/ResNet/cifar10_resnet_model.py --N 3 --restype original --model examples/original_resnet_cifar10
+#python ./python/ResNet/cifar10_resnet_model.py --N 3 --restype identity --model examples/identity_resnet_cifar10
