@@ -196,7 +196,6 @@ public:
     prefetch_rng_.reset(new Caffe::RNG(seed));
   }
   inline bool load_data(std::ifstream &infile) {
-    init();
     if(!(infile >> HASH)) return ok=false;
     CHECK_EQ(HASH, "#");
     CHECK(infile >> this->folder);
@@ -207,6 +206,7 @@ public:
     for (int index = 0; index < num_image; index++ ) {
       string image; int num_rois;
       CHECK(infile >> image >> num_rois);
+      _image_dataset.push_back(image);
       vector<TrackLet<Dtype> > objects;
 
       for (int roi_ = 0; roi_ < num_rois; roi_++ ) {
