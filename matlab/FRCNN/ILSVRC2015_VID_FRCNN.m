@@ -8,8 +8,8 @@ function ILSVRC2015_VID_FRCNN(ILSVRC_Root, Save_Dir)
 % img_path (relative path)
 % num_roi
 % label x1 y1 x2 y2 difficult
-ILSVRC_Root = '~/data/ILSVRC2015';
-Save_Dir = '../../examples/FRCNN/dataset';
+%ILSVRC_Root = '~/data/ILSVRC2015';
+%Save_Dir = '../../examples/FRCNN/dataset';
 clc; clearvars -except ILSVRC_Root Save_Dir;
 Cpath = pwd;
 cd(ILSVRC_Root);ILSVRC_Root=pwd;cd(Cpath);

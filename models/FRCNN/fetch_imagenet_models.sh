@@ -1,8 +1,5 @@
 #!/bin/bash
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )"
-cd $DIR
-
 FILE=imagenet_models.tgz
 URL=http://www.cs.berkeley.edu/~rbg/faster-rcnn-data/$FILE
 CHECKSUM=ed34ca912d6782edfb673a8c3a0bda6d

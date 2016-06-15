@@ -173,6 +173,8 @@ void FrcnnVidDataLayer<Dtype>::load_batch(Batch<Dtype> *batch) {
     LOG(FATAL) << "Could not open or find file " << X.second;
     return;
   }
+  CHECK_EQ(cv_img.rows, vid_database_[index].H()) << "rows : " << cv_img.rows << ", Height : " << vid_database_[index].H();
+  CHECK_EQ(cv_img.cols, vid_database_[index].W()) << "cols : " << cv_img.cols << ", Width  : " << vid_database_[index].W();
   cv::Mat src;
   cv_img.convertTo(src, CV_32FC3);
   if (do_mirror) {
@@ -228,35 +230,56 @@ void FrcnnVidDataLayer<Dtype>::load_batch(Batch<Dtype> *batch) {
 
   if (do_mirror) {
     for (int i = 0; i < rois.size(); i++) {
-      CHECK(rois[i][DataPrepare::X1] >= 0 ) << "rois[i][DataPrepare::X1] : " << rois[i][DataPrepare::X1];
-      CHECK(rois[i][DataPrepare::X2] < cv_img.cols ) << "rois[i][DataPrepare::X2] : " << rois[i][DataPrepare::X2];
-      CHECK(rois[i][DataPrepare::Y2] < cv_img.rows ) << "rois[i][DataPrepare::Y2] : " << rois[i][DataPrepare::Y2];
-      float old_x1 = rois[i][DataPrepare::X1];
-      float old_x2 = rois[i][DataPrepare::X2];
-      rois[i][DataPrepare::X1] = cv_img.cols - old_x2 - 1; 
-      rois[i][DataPrepare::X2] = cv_img.cols - old_x1 - 1; 
-      CHECK(rois[i][0] >= 0); 
-      //CHECK(rois[i][DataPrepare::X2] >= rois[i][DataPrepare::X1]) << image_database_[index] << " = " << roi_database_[index][i][0] << ", " << roi_database_[index][i][1] << ", " << roi_database_[index][i][2] << ", " << roi_database_[index][i][3] << ", " << roi_database_[index][i][4] << std::endl 
-       //     << "rois[i][0] : " << rois[i][0] << ", rois[i][2] : " << rois[i][2] << " | cv_img.cols : " << cv_img.cols;
-      //CHECK(rois[i][DataPrepare::Y2] >= rois[i][DataPrepare::Y1]) << "rois[i][Y1] : " << rois[i][DataPrepare::Y1] << ", rois[i][Y2] : " << rois[i][DataPrepare::Y2] << " | cv_img.cols : " << cv_img.cols;
+      CHECK_GE(rois[i][VidPrepare<Dtype>::X1], 0);
+      if (rois[i][VidPrepare<Dtype>::Y2] >= cv_img.rows) {
+        LOG(WARNING) << "rois[i][VidPrepare<Dtype>::Y2] : " << rois[i][VidPrepare<Dtype>::Y2] << ", cv_img.rows : " << cv_img.rows;
+        rois[i][VidPrepare<Dtype>::Y2] = cv_img.rows - 1;
+      }
+      if (rois[i][VidPrepare<Dtype>::X2] >= cv_img.cols) {
+        LOG(WARNING) << "rois[i][VidPrepare<Dtype>::X2] : " << rois[i][VidPrepare<Dtype>::X2] << ", cv_img.cols : " << cv_img.cols;
+        rois[i][VidPrepare<Dtype>::X2] = cv_img.cols - 1;
+
+      }
+      float old_x1 = rois[i][VidPrepare<Dtype>::X1];
+      float old_x2 = rois[i][VidPrepare<Dtype>::X2];
+      rois[i][VidPrepare<Dtype>::X1] = cv_img.cols - old_x2 - 1; 
+      rois[i][VidPrepare<Dtype>::X2] = cv_img.cols - old_x1 - 1; 
+      CHECK_GE(rois[i][VidPrepare<Dtype>::X2], rois[i][VidPrepare<Dtype>::X1]);
+      CHECK_GE(rois[i][VidPrepare<Dtype>::Y2], rois[i][VidPrepare<Dtype>::Y1]);
     }
   }
   CHECK_EQ(rois.size(), channels-1);
   for (int i = 1; i < channels; i++) {
-    CHECK_EQ(rois[i-1].size(), DataPrepare::NUM);
-    top_label[5 * i + 0] = rois[i-1][DataPrepare::X1] * im_scale; // x1
-    top_label[5 * i + 1] = rois[i-1][DataPrepare::Y1] * im_scale; // y1
-    top_label[5 * i + 2] = rois[i-1][DataPrepare::X2] * im_scale; // x2
-    top_label[5 * i + 3] = rois[i-1][DataPrepare::Y2] * im_scale; // y2
-    top_label[5 * i + 4] = rois[i-1][DataPrepare::LABEL];         // label
+    CHECK_EQ(rois[i-1].size(), VidPrepare<Dtype>::NUM);
+    top_label[5 * i + 0] = rois[i-1][VidPrepare<Dtype>::X1] * im_scale; // x1
+    top_label[5 * i + 1] = rois[i-1][VidPrepare<Dtype>::Y1] * im_scale; // y1
+    top_label[5 * i + 2] = rois[i-1][VidPrepare<Dtype>::X2] * im_scale; // x2
+    top_label[5 * i + 3] = rois[i-1][VidPrepare<Dtype>::Y2] * im_scale; // y2
+    top_label[5 * i + 4] = rois[i-1][VidPrepare<Dtype>::LABEL];         // label
+
+    if (top_label[5 * i + 0] < 0 ) {
+      LOG(WARNING) << X.second << " : " << vid_database_[index].message() << " x1 : " << rois[i-1][VidPrepare<Dtype>::X1];
+      top_label[5 * i + 0] = 0;
+    }
+    if (top_label[5 * i + 1] < 0 ) {
+      LOG(WARNING) << X.second << " : " << vid_database_[index].message() << " y1 : " << rois[i-1][VidPrepare<Dtype>::Y1];
+      top_label[5 * i + 1] = 0;
+    }
+    if (top_label[5 * i + 2] >= top_label[1] ) {
+      LOG(WARNING) << X.second << " : " << vid_database_[index].message() << " x2 : " << rois[i-1][VidPrepare<Dtype>::X2];
+      top_label[5 * i + 1] = top_label[1]-1;
+    }
+    if (top_label[5 * i + 3] >= top_label[0] ) {
+      LOG(WARNING) << X.second << " : " << vid_database_[index].message() << " y2 : " << rois[i-1][VidPrepare<Dtype>::Y2];
+      top_label[5 * i + 3] = top_label[0]-1;
+    }
     
-    // DEBUG
-    CHECK(top_label[5 * i + 0] >= 0 );
-    CHECK(top_label[5 * i + 1] >= 0 );
-    CHECK(top_label[5 * i + 2] <= top_label[1]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
-            << im_scale << " | " << rois[i-1][DataPrepare::X2] << " , " << top_label[5 * i + 2];
-    CHECK(top_label[5 * i + 3] <= top_label[0]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
-            << im_scale << " | " << rois[i-1][DataPrepare::Y2] << " , " << top_label[5 * i + 3];
+    CHECK_GE(top_label[5 * i + 0], 0 );
+    CHECK_GE(top_label[5 * i + 1], 0 );
+    CHECK_LE(top_label[5 * i + 2], top_label[1]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
+            << im_scale << " | " << rois[i-1][VidPrepare<Dtype>::X2] << " , " << top_label[5 * i + 2];
+    CHECK_LE(top_label[5 * i + 3], top_label[0]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
+            << im_scale << " | " << rois[i-1][VidPrepare<Dtype>::Y2] << " , " << top_label[5 * i + 3];
     
   }
 

@@ -189,6 +189,7 @@ public:
   VidPrepare() {
     ok = false;
     prefetch_rng_.reset();
+    this->current_index = -1;
   }
   inline void init(const unsigned int seed = 0) {
     _image_dataset.clear();
@@ -199,11 +200,10 @@ public:
     if(!(infile >> HASH)) return ok=false;
     CHECK_EQ(HASH, "#");
     CHECK(infile >> this->folder);
-    int num_image;
-    CHECK(infile >> num_image >> this->height >> this->width);
+    CHECK(infile >> this->num_image >> this->height >> this->width);
     int x1, y1, x2, y2;
     int track_let, label;
-    for (int index = 0; index < num_image; index++ ) {
+    for (int index = 0; index < this->num_image; index++ ) {
       string image; int num_rois;
       CHECK(infile >> image >> num_rois);
       _image_dataset.push_back(image);
@@ -211,8 +211,12 @@ public:
 
       for (int roi_ = 0; roi_ < num_rois; roi_++ ) {
         CHECK(infile >> track_let >> label >> x1 >> y1 >> x2 >> y2);
-        CHECK(label>0 && label<FrcnnParam::n_classes) << "illegal label : " << label << ", should >= 1 and < " << FrcnnParam::n_classes;
         TrackLet<Dtype> cobject(x1, y1, x2, y2, 1, label, track_let);
+        CHECK(label>0 && label<FrcnnParam::n_classes) << "illegal label : " << label << ", should >= 1 and < " << FrcnnParam::n_classes;
+        CHECK_GE(x1, 0) << cobject.to_string();
+        CHECK_GE(y1, 0) << cobject.to_string();
+        CHECK_LT(x1, this->width) << "Width : " << this->width << cobject.to_string();
+        CHECK_LT(y1, this->height) << "Height : " << this->height << cobject.to_string();
         objects.push_back(cobject);
       }
 
@@ -224,9 +228,9 @@ public:
 
   inline pair<vector<vector<float> >, string> Next() {
     CHECK(ok) << "Status is false";
-    int index = PrefetchRand() % _image_dataset.size();
-    string image = folder + "/" + _image_dataset[index];
-    const vector<TrackLet<Dtype> > &objects = _objects[index];
+    this->current_index = PrefetchRand() % _image_dataset.size();
+    string image = folder + "/" + _image_dataset[current_index];
+    const vector<TrackLet<Dtype> > &objects = _objects[current_index];
     vector<vector<float> > rois;
     for (size_t ii = 0; ii < objects.size(); ii++ ) {
       vector<float> roi(NUM);
@@ -240,8 +244,18 @@ public:
     CHECK_EQ(rois.size(), objects.size());
     return make_pair(rois, image);
   } 
+  
+  inline string message() {
+    CHECK(ok) << "Status is false";
+    CHECK_GE(this->current_index, 0);
+    CHECK_LT(this->current_index, int(_image_dataset.size()));
+    char buff[100];
+    snprintf(buff, sizeof(buff), "height : %d, width : %d " , this->height, this->width);
+    return string(buff);
+  }
 
   inline map<int,int> count_label() {
+    CHECK(ok) << "Status is false";
     map<int, int> label_hist;
     for (size_t index = 0; index < _objects.size(); index++ ) {
       for (size_t oid = 0; oid < _objects[index].size(); oid++ ) {
@@ -253,12 +267,24 @@ public:
     return label_hist;
   }
 
+  inline int H() {
+    CHECK(ok) << "Status is false";
+    return this->height;
+  }
+
+  inline int W() {
+    CHECK(ok) << "Status is false";
+    return this->width;
+  }
+
+  enum RoiDataField { LABEL, X1, Y1, X2, Y2, NUM };
 private:
   string HASH;
   string folder;
-  int frames;
+  int num_image;
   int height;
   int width;
+  int current_index;
   vector<string> _image_dataset;
   vector<vector<TrackLet<Dtype> > > _objects;
   bool ok;
@@ -271,7 +297,6 @@ private:
         static_cast<caffe::rng_t *>(prefetch_rng_->generator());
     return (*prefetch_rng)();
   }
-  enum RoiDataField { LABEL, X1, Y1, X2, Y2, NUM };
 };
 
 template <typename Dtype>

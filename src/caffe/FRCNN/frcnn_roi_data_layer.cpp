@@ -269,17 +269,17 @@ void FrcnnRoiDataLayer<Dtype>::load_batch(Batch<Dtype> *batch) {
   vector<vector<float> > rois = roi_database_[index];
   if (do_mirror) {
     for (int i = 0; i < rois.size(); i++) {
-      CHECK(rois[i][DataPrepare::X1] >= 0 ) << "rois[i][DataPrepare::X1] : " << rois[i][DataPrepare::X1];
-      CHECK(rois[i][DataPrepare::X2] < cv_img.cols ) << "rois[i][DataPrepare::X2] : " << rois[i][DataPrepare::X2];
-      CHECK(rois[i][DataPrepare::Y2] < cv_img.rows ) << "rois[i][DataPrepare::Y2] : " << rois[i][DataPrepare::Y2];
+      CHECK_GE(rois[i][DataPrepare::X1], 0 ) << "rois[i][DataPrepare::X1] : " << rois[i][DataPrepare::X1];
+      CHECK_LT(rois[i][DataPrepare::X2], cv_img.cols ) << "rois[i][DataPrepare::X2] : " << rois[i][DataPrepare::X2];
+      CHECK_LT(rois[i][DataPrepare::Y2], cv_img.rows ) << "rois[i][DataPrepare::Y2] : " << rois[i][DataPrepare::Y2];
       float old_x1 = rois[i][DataPrepare::X1];
       float old_x2 = rois[i][DataPrepare::X2];
       rois[i][DataPrepare::X1] = cv_img.cols - old_x2 - 1; 
       rois[i][DataPrepare::X2] = cv_img.cols - old_x1 - 1; 
-      CHECK(rois[i][0] >= 0); 
-      CHECK(rois[i][DataPrepare::X2] >= rois[i][DataPrepare::X1]) << image_database_[index] << " = " << roi_database_[index][i][0] << ", " << roi_database_[index][i][1] << ", " << roi_database_[index][i][2] << ", " << roi_database_[index][i][3] << ", " << roi_database_[index][i][4] << std::endl 
+      CHECK_GE(rois[i][0], 0); 
+      CHECK_GE(rois[i][DataPrepare::X2], rois[i][DataPrepare::X1]) << image_database_[index] << " = " << roi_database_[index][i][0] << ", " << roi_database_[index][i][1] << ", " << roi_database_[index][i][2] << ", " << roi_database_[index][i][3] << ", " << roi_database_[index][i][4] << std::endl 
             << "rois[i][0] : " << rois[i][0] << ", rois[i][2] : " << rois[i][2] << " | cv_img.cols : " << cv_img.cols;
-      CHECK(rois[i][DataPrepare::Y2] >= rois[i][DataPrepare::Y1]) << "rois[i][Y1] : " << rois[i][DataPrepare::Y1] << ", rois[i][Y2] : " << rois[i][DataPrepare::Y2] << " | cv_img.cols : " << cv_img.cols;
+      CHECK_GE(rois[i][DataPrepare::Y2], rois[i][DataPrepare::Y1]) << "rois[i][Y1] : " << rois[i][DataPrepare::Y1] << ", rois[i][Y2] : " << rois[i][DataPrepare::Y2] << " | cv_img.cols : " << cv_img.cols;
     }
   }
   CHECK_EQ(rois.size(), channels-1);
@@ -291,12 +291,12 @@ void FrcnnRoiDataLayer<Dtype>::load_batch(Batch<Dtype> *batch) {
     top_label[5 * i + 3] = rois[i-1][DataPrepare::Y2] * im_scale; // y2
     top_label[5 * i + 4] = rois[i-1][DataPrepare::LABEL];         // label
     
-    // DEBUG
-    CHECK(top_label[5 * i + 0] >= 0 );
-    CHECK(top_label[5 * i + 1] >= 0 );
-    CHECK(top_label[5 * i + 2] <= top_label[1]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
+    // CHECK
+    CHECK_GE(top_label[5 * i + 0], 0);
+    CHECK_GE(top_label[5 * i + 1], 0);
+    CHECK_LE(top_label[5 * i + 2], top_label[1]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
             << im_scale << " | " << rois[i-1][DataPrepare::X2] << " , " << top_label[5 * i + 2];
-    CHECK(top_label[5 * i + 3] <= top_label[0]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
+    CHECK_LE(top_label[5 * i + 3], top_label[0]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
             << im_scale << " | " << rois[i-1][DataPrepare::Y2] << " , " << top_label[5 * i + 3];
     
   }
