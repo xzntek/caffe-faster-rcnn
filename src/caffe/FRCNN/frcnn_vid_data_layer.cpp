@@ -267,7 +267,7 @@ void FrcnnVidDataLayer<Dtype>::load_batch(Batch<Dtype> *batch) {
     }
     if (top_label[5 * i + 2] >= top_label[1] ) {
       LOG(WARNING) << X.second << " : " << vid_database_[index].message() << " x2 : " << rois[i-1][VidPrepare<Dtype>::X2];
-      top_label[5 * i + 1] = top_label[1]-1;
+      top_label[5 * i + 2] = top_label[1]-1;
     }
     if (top_label[5 * i + 3] >= top_label[0] ) {
       LOG(WARNING) << X.second << " : " << vid_database_[index].message() << " y2 : " << rois[i-1][VidPrepare<Dtype>::Y2];
