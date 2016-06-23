@@ -182,10 +182,12 @@ int main(int argc, char** argv){
     LOG(INFO) << output_name << " = " << mean_score << loss_msg_stream.str();
   }
 
-  float threshes[] = {0, 0.01, 0.05, 0.1, 0.2, 0.3};
+  float threshes[] = {0, 0.001, 0.01, 0.1, 1, 10};
   const int count = sizeof(threshes) / sizeof(float);
   for (int i = 0; i < count; i++) {
     LOG(INFO) << "Thresh (" << std::setfill(' ') << std::setw(4) << threshes[i] << ")  ~~~~~~~~~~~~~~~~~~~~~~ Count values <= " << threshes[i];
+    double Total = 0;
+    double Count = 0;
     const float thresh = threshes[i];
     for (size_t index = 0; index < single_blobs.size(); index++) {
       const int total = Values[index].Total();
@@ -193,7 +195,10 @@ int main(int argc, char** argv){
       const string name = Values[index].Name();
       double ratio = double(count) / total;
       LOG(INFO) << std::setfill(' ') << std::setw(10) << name << "\tratio : " << ratio << "\t" << count << " / " << total;
+      Total += total / 100.f;
+      Count += count / 100.f;
     }
+    LOG(INFO) << std::setfill(' ') << std::setw(10) << "Count For Total Layer\tratio : " << Count / Total << "\t" << Count << " / " << Total << std::endl;
   }
   return 0;
 }

@@ -48,7 +48,7 @@ if __name__ == '__main__':
     if not os.path.isdir(cifar10_dir):
         os.makedirs(cifar10_dir)
 
-    snapshot = osp.join(cifar10_dir, 'snapshot', 'cifar10_res{}'.format(layer_num))
+    snapshot = osp.join(cifar10_dir, 'snapshot')
     if not os.path.isdir(snapshot):
         os.makedirs(snapshot)
 
@@ -69,22 +69,28 @@ if __name__ == '__main__':
     solverprototxt.sp['max_iter'] = '64000'
     solverprototxt.sp['test_interval'] = '200'
     solverprototxt.sp['snapshot'] = '4000'
-    solverprototxt.sp['snapshot_prefix'] = '"' + snapshot + '"'
+    solverprototxt.sp['snapshot_prefix'] = '"' + osp.join(snapshot, 'cifar10_res{}'.format(layer_num)) + '"'
     solverprototxt.write(solver_file)
 
     train_data, train_label = wrap.prepare_data(args.lmdb_train, args.mean_file, args.batch_size_train, True)
     test_data, test_label = wrap.prepare_data(args.lmdb_test, args.mean_file, args.batch_size_test, False)
 
 
-    #caffemodel = wrap.resnet_cifar_ori(test_data, test_label, args.resnet_N)
-    caffemodel = wrap_for_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N)
+    #caffemodel = wrap_for_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N)
+    acc, loss = wrap_for_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N)
     
     name  = '"CIFAR10_Resnet_%d"' % (args.resnet_N*6+2)
+    Ex_Loss = False
     print 'Name: %s' % name
     with open(trainval_proto, 'w') as model:
         model.write('name: %s\n' % (name))
         model.write('%s\n' % to_proto(train_data, train_label))
-        model.write('%s\n' % caffemodel)
+        if Ex_Loss == False:
+            model.write('%s\n' % to_proto(loss, acc))
+        else:
+            global_single = wrap_for_acc.global_single
+            model.write('%s\n' % to_proto(loss, acc, global_single))
+
 
     shell = osp.join(cifar10_dir, 'train_{}.sh'.format(layer_num))
     with open(shell, 'w') as shell_file:
@@ -97,5 +103,5 @@ if __name__ == '__main__':
         shell_file.write('weights={}\niters=100\n'.format(weights))
         shell_file.write('./build/tools/display_resnset_sparse --gpu $gpu --model $model --weights $weights --iterations $iters');
 
-    print 'Generate Done'
+    print 'Generate Done, Save in %s' % trainval_proto
 

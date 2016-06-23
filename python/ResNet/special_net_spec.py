@@ -42,11 +42,14 @@ def param_name_dict():
 def to_proto(*tops):
     """Generate a NetParameter that contains all layers needed to compute
     all arguments."""
-
     layers = OrderedDict()
     autonames = Counter()
     for top in tops:
-        top.fn._to_proto(layers, {}, autonames)
+        if isinstance(top, list):
+            for ctop in top:
+                ctop.fn._to_proto(layers, {}, autonames)
+        else:
+            top.fn._to_proto(layers, {}, autonames)
     net = caffe_pb2.NetParameter()
     net.layer.extend(layers.values())
     return net

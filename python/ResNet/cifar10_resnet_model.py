@@ -51,7 +51,7 @@ if __name__ == '__main__':
     if not os.path.isdir(cifar10_dir):
         os.makedirs(cifar10_dir)
 
-    snapshot = osp.join(cifar10_dir, 'snapshot', 'cifar10_res{}'.format(layer_num))
+    snapshot = osp.join(cifar10_dir, 'snapshot')
     if not os.path.isdir(snapshot):
         os.makedirs(snapshot)
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     solverprototxt.sp['max_iter'] = '64000'
     solverprototxt.sp['test_interval'] = '200'
     solverprototxt.sp['snapshot'] = '4000'
-    solverprototxt.sp['snapshot_prefix'] = '"' + snapshot + '"'
+    solverprototxt.sp['snapshot_prefix'] = '"' + osp.join(snapshot, 'cifar10_res{}'.format(layer_num)) + '"'
     solverprototxt.write(solver_file)
 
     train_data, train_label = wrap.prepare_data(args.lmdb_train, args.mean_file, args.batch_size_train, True)
@@ -98,6 +98,10 @@ if __name__ == '__main__':
     shell = osp.join(cifar10_dir, 'train_{}.sh'.format(layer_num))
     with open(shell, 'w') as shell_file:
         shell_file.write('GLOG_log_dir={} build/tools/caffe train --solver {} --gpu $1'.format(log, solver_file))
+
+    ignore = osp.join(cifar10_dir, '.gitignore')
+    with open(ignore, 'w') as ignore_file:
+        ignore_file.write('*')
 
     print 'Generate Done'
 

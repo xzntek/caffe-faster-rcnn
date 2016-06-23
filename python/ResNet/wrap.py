@@ -42,7 +42,7 @@ def BatchNorm(name, input, Has_Scale = True):
 
 def BN_ReLU(name, input, Has_Scale = True):
     temp = BatchNorm(name, input, Has_Scale = Has_Scale )
-    return L.ReLU(temp, name = name+'-relu', in_place = True)
+    return L.PReLU(temp, name = name+'-relu', in_place = True)
 
 #  Residual building block! Implements option (A) from Section 3.3. The input
  #  is passed through two 3x3 convolution layers. Currently this block only supports 

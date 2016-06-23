@@ -5,23 +5,29 @@ import numpy as np
 from array import array
 import scipy.io as sio
 import os
-if os.path.exists('../caffe'):
-    sys.path.append('..')
+if os.path.exists('./python/caffe'):
+    sys.path.append('./python')
 else:
     print 'Error : caffe(pycaffe) could not be found'
 import caffe
 from caffe.proto import caffe_pb2
+import argparse
 
-Train_or_Test = True
-#Train_or_Test = False
-cifar10_train_data = '../../examples/cifar10/cifar10_train_lmdb'
-cifar10_test_data  = '../../examples/cifar10/cifar10_test_lmdb'
+parser = argparse.ArgumentParser(description='Generate cifar10 mat data from lmdb')
+parser.add_argument('--Type', dest='type', help='Convert train data or test, use [Train] or [Test]',
+        default='Train', type=str);
+args = parser.parse_args()
+
+print 'Convert cifar10 LMDB %s Data' % args.type
+Train_or_Test = args.type == 'Train'
+cifar10_train_data = './examples/cifar10/cifar10_train_lmdb'
+cifar10_test_data  = './examples/cifar10/cifar10_test_lmdb'
 if Train_or_Test:
     data_path = cifar10_train_data
-    save_path = '../../examples/cifar10/cifar10_train_lmdb.mat'
+    save_path = './examples/cifar10/cifar10_train_lmdb.mat'
 else:
     data_path = cifar10_test_data
-    save_path = '../../examples/cifar10/cifar10_test_lmdb.mat'
+    save_path = './examples/cifar10/cifar10_test_lmdb.mat'
 
 print 'LMDB DATA PATH : %s\n' %data_path 
 lmdb_env = lmdb.open(data_path)
