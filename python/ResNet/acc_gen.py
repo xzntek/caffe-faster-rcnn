@@ -5,7 +5,7 @@ import caffe
 import sys, os, argparse
 import os.path as osp
 import wrap #this contains some tools that we need
-import wrap_for_acc
+import wrap_identity_acc
 
 def parse_args():
     """
@@ -33,6 +33,19 @@ def parse_args():
     parser.add_argument('--model', dest='model',
                         help='model proto dir',
                         default='examples/cifar10_resnet', type=str)
+
+    parser.add_argument('--ACC_model_1', dest='acc1',
+                        help='accalerate model for first convolution',
+                        default='bn', type=str)
+
+    parser.add_argument('--ACC_model_2', dest='acc2',
+                        help='accalerate model for second convolution',
+                        default='bn', type=str)
+
+    parser.add_argument('--Single_Act', dest='single',
+                        help='activate function for single 1x1 convolution',
+                        default='bn', type=str)
+
     args = parser.parse_args()
 
     return args
@@ -40,7 +53,8 @@ def parse_args():
 if __name__ == '__main__':
     args   = parse_args()
 
-    cifar10_dir = args.model
+    cifar10_dir = '{}_{}_{}_A{}'.format(args.model, args.acc1, args.acc2, args.single)
+
     print 'cifar10_dir : {}'.format(args.model)
     layer_num  = args.resnet_N*6+2
     print 'Resnet N: %d, Layer: %d' %(args.resnet_N, layer_num)
@@ -60,48 +74,48 @@ if __name__ == '__main__':
 
     #Generate solver
     solver_file = osp.join(cifar10_dir, 'solver_{}.proto'.format(layer_num))
-    solverprototxt = wrap.CaffeSolver(net_prototxt_path = trainval_proto)
-    solverprototxt.sp['display'] = '100'
-    solverprototxt.sp['base_lr'] = '0.1'
-    solverprototxt.sp['weight_decay'] = '0.0001'
-    solverprototxt.sp['lr_policy'] = '"multistep"'
-    solverprototxt.sp['stepvalue'] = ['32000', '48000', '64000']
-    solverprototxt.sp['max_iter'] = '64000'
-    solverprototxt.sp['test_interval'] = '200'
-    solverprototxt.sp['snapshot'] = '4000'
-    solverprototxt.sp['snapshot_prefix'] = '"' + osp.join(snapshot, 'cifar10_res{}'.format(layer_num)) + '"'
+    snapshot_prefix = osp.join(snapshot, 'cifar10_res{}'.format(layer_num)) ;
+    solverprototxt = wrap.CaffeSolver(net_prototxt_path = trainval_proto, snapshot = snapshot_prefix);
     solverprototxt.write(solver_file)
 
     train_data, train_label = wrap.prepare_data(args.lmdb_train, args.mean_file, args.batch_size_train, True)
     test_data, test_label = wrap.prepare_data(args.lmdb_test, args.mean_file, args.batch_size_test, False)
 
+    assert args.acc1 == 'bn' or args.acc1 == 'pn' or args.acc1 == 'none'
+    assert args.acc2 == 'bn' or args.acc2 == 'pn' or args.acc2 == 'none'
 
     #caffemodel = wrap_for_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N)
-    acc, loss = wrap_for_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N)
+    main_proto = wrap_identity_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N, No_BN = False, PACC = [args.acc1, args.acc2], PAddtioni = args.single)
+    name = '"CIFAR10_Resnet_%d"' % (args.resnet_N*6+2)
+    wrap.write_prototxt(trainval_proto, name, [to_proto(train_data, train_label), main_proto])
     
-    name  = '"CIFAR10_Resnet_%d"' % (args.resnet_N*6+2)
-    Ex_Loss = False
-    print 'Name: %s' % name
-    with open(trainval_proto, 'w') as model:
-        model.write('name: %s\n' % (name))
-        model.write('%s\n' % to_proto(train_data, train_label))
-        if Ex_Loss == False:
-            model.write('%s\n' % to_proto(loss, acc))
-        else:
-            global_single = wrap_for_acc.global_single
-            model.write('%s\n' % to_proto(loss, acc, global_single))
-
+    """
+    # For prototxt without BN
+    noBN_proto = wrap_identity_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N, No_BN = True , PADD = [args.acc1, args.acc2], PAddtioni = args.single)
+    NoBN_proto_path = osp.join(cifar10_dir, 'cifar10_res{}_NoBN.proto'.format(layer_num))
+    name = '"CIFAR10_Resnet_%d_NoBN"' % (args.resnet_N*6+2)
+    wrap.write_prototxt(NoBN_proto_path, name, [to_proto(train_data, train_label), noBN_proto])
+    """
 
     shell = osp.join(cifar10_dir, 'train_{}.sh'.format(layer_num))
     with open(shell, 'w') as shell_file:
         shell_file.write('GLOG_log_dir={} build/tools/caffe train --solver {} --gpu $1'.format(log, solver_file))
 
     shell = osp.join(cifar10_dir, 'dis_{}.sh'.format(layer_num))
-    weights = osp.join('{}_iter_{}.caffemodel'.format(snapshot,solverprototxt.sp['max_iter']))
+    weights = osp.join('{}_iter_{}.caffemodel'.format(snapshot_prefix, solverprototxt.sp['max_iter']))
     with open(shell, 'w') as shell_file:
         shell_file.write('gpu=$1\nmodel={}\n'.format(trainval_proto))
         shell_file.write('weights={}\niters=100\n'.format(weights))
-        shell_file.write('./build/tools/display_resnset_sparse --gpu $gpu --model $model --weights $weights --iterations $iters');
+        shell_file.write('./build/tools/display_resnset_sparse --gpu $gpu --model $model --weights $weights --iterations $iters 2>&1 | tee {}'.format(osp.join(cifar10_dir,'display_$$.log')))
+
+    shell = osp.join(cifar10_dir, 'time_{}.sh'.format(layer_num))
+    with open(shell, 'w') as shell_file:
+        shell_file.write('gpu=$1\nmodel={}\n'.format(trainval_proto))
+        shell_file.write('weights={}\niters=50\n'.format(weights))
+        shell_file.write('OMP_NUM_THREADS=1 ./build/tools/time_for_forward --gpu $gpu --model $model --weights $weights --iterations $iters 2>&1 | tee {}'.format(osp.join(cifar10_dir,'time_$$.log')))
+
+    ignore = osp.join(cifar10_dir, '.gitignore')
+    with open(ignore, 'w') as ignore_file:
+        ignore_file.write('*')
 
     print 'Generate Done, Save in %s' % trainval_proto
-

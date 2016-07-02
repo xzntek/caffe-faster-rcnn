@@ -63,16 +63,8 @@ if __name__ == '__main__':
 
     #Generate solver
     solver_file = osp.join(cifar10_dir, 'solver_{}.proto'.format(layer_num))
-    solverprototxt = wrap.CaffeSolver(net_prototxt_path = trainval_proto)
-    solverprototxt.sp['display'] = '100'
-    solverprototxt.sp['base_lr'] = '0.1'
-    solverprototxt.sp['weight_decay'] = '0.0001'
-    solverprototxt.sp['lr_policy'] = '"multistep"'
-    solverprototxt.sp['stepvalue'] = ['32000', '48000', '64000']
-    solverprototxt.sp['max_iter'] = '64000'
-    solverprototxt.sp['test_interval'] = '200'
-    solverprototxt.sp['snapshot'] = '4000'
-    solverprototxt.sp['snapshot_prefix'] = '"' + osp.join(snapshot, 'cifar10_res{}'.format(layer_num)) + '"'
+    snapshot_prefix = osp.join(snapshot, 'cifar10_res{}'.format(layer_num))
+    solverprototxt = wrap.CaffeSolver(net_prototxt_path = trainval_proto, snapshot = snapshot_prefix)
     solverprototxt.write(solver_file)
 
     train_data, train_label = wrap.prepare_data(args.lmdb_train, args.mean_file, args.batch_size_train, True)
@@ -83,21 +75,25 @@ if __name__ == '__main__':
         print 'original resnet : %s' % args.type
         caffemodel = wrap.resnet_cifar_ori(test_data, test_label, args.resnet_N)
     elif args.type=='identity':
-        print 'identity-mapping resnet : %s\n' % args.type
+        print 'identity-mapping resnet : %s' % args.type
         caffemodel = wrap.resnet_cifar_pro(test_data, test_label, args.resnet_N)
     else:
         TypeError('Resnet type must be original or identity')
     
     name  = '"CIFAR10_Resnet_%d"' % (args.resnet_N*6+2)
-    print 'Name: %s' % name
-    with open(trainval_proto, 'w') as model:
-        model.write('name: %s\n' % (name))
-        model.write('%s\n' % to_proto(train_data, train_label))
-        model.write('%s\n' % caffemodel)
+    data_proto = to_proto(train_data, train_label)
+    wrap.write_prototxt(trainval_proto, name, [data_proto, caffemodel])
 
     shell = osp.join(cifar10_dir, 'train_{}.sh'.format(layer_num))
     with open(shell, 'w') as shell_file:
         shell_file.write('GLOG_log_dir={} build/tools/caffe train --solver {} --gpu $1'.format(log, solver_file))
+
+    shell = osp.join(cifar10_dir, 'time_{}.sh'.format(layer_num))
+    weights = osp.join('{}_iter_{}.caffemodel'.format(snapshot_prefix, solverprototxt.sp['max_iter']))
+    with open(shell, 'w') as shell_file:
+        shell_file.write('gpu=$1\nmodel={}\n'.format(trainval_proto))
+        shell_file.write('weights={}\niters=50\n'.format(weights))
+        shell_file.write('OMP_NUM_THREADS=1 ./build/tools/time_for_forward --gpu $gpu --model $model --weights $weights --iterations $iters 2>&1 | tee {}'.format(osp.join(cifar10_dir,'time_$$.log')))
 
     ignore = osp.join(cifar10_dir, '.gitignore')
     with open(ignore, 'w') as ignore_file:

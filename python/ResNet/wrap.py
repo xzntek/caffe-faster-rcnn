@@ -42,7 +42,7 @@ def BatchNorm(name, input, Has_Scale = True):
 
 def BN_ReLU(name, input, Has_Scale = True):
     temp = BatchNorm(name, input, Has_Scale = Has_Scale )
-    return L.PReLU(temp, name = name+'-relu', in_place = True)
+    return L.ReLU(temp, name = name+'-relu', in_place = True)
 
 #  Residual building block! Implements option (A) from Section 3.3. The input
  #  is passed through two 3x3 convolution layers. Currently this block only supports 
@@ -69,8 +69,11 @@ def original_residual_block(bottom, name, num_filters, stride=1):
     else:
         raise Exception('Currently, stride must be either 1 or 2.')
 
-def proposed_residual_block(input, name, out_channel, stride = 1):
-    layer = BN_ReLU(input = input, name = name+'-1')
+def proposed_residual_block(input, name, out_channel, stride = 1, First = False):
+    if First == False:
+        layer = BN_ReLU(input = input, name = name+'-1')
+    else:
+        layer = input
     conv1 = Conv2D(input = layer, name = name+'-1-conv', stride = stride, num_output = out_channel)
     bn2   = BN_ReLU(input = conv1, name = name+'-2')
     conv2 = Conv2D(input = bn2, name = name+'-2-conv', num_output = out_channel)
@@ -116,13 +119,8 @@ def resnet_cifar_ori(data, label, n_size=3):
 def resnet_cifar_pro(data, label, n_size=3):
     # Convolution 0
     layer = Conv2D(input = data, name = 'init', num_output = 16)
-    layer = L.BatchNorm(layer, name = 'init-bn', in_place=True, param=[dict(lr_mult=0, decay_mult=0), dict(lr_mult=0, decay_mult=0), dict(lr_mult=0, decay_mult=0)])
-    input = layer = L.ReLU(layer, name = 'init-relu', in_place=True)
-
-    layer = Conv2D(input = input, name = 'res0.0-1-conv', num_output = 16)
-    layer = BN_ReLU(input = layer, name = 'res0.0-1-bn')
-    layer = Conv2D(input = layer, name = 'res0.0-2-conv', num_output = 16)
-    layer = L.Eltwise(layer, input, name = 'res0.0-sum', ex_top = ['res0.0-sum'], operation=P.Eltwise.SUM)
+    layer = BN_ReLU(input = layer, name = 'init')
+    layer = proposed_residual_block(input = layer, name = 'res1.0', stride = 1, out_channel = 16, First = True)
 
     #32*32, c=16
     for i in xrange(n_size - 1):
@@ -163,7 +161,15 @@ def prepare_data(lmdb, mean_file, batch_size=100, train=True):
                 name = 'data', ex_top = ['data','label'],
                 transform_param=dict(mean_file=mean_file, crop_size=28), include=dict(phase=getattr(caffe_pb2, 'TEST')))
 
+    #return data, label
     return data, label
+
+def write_prototxt(proto_name, name, protos):
+    print('Proto Name : {}'.format(name))
+    with open(proto_name, 'w') as model:
+        model.write('name: %s\n' % (name))
+        for proto in protos:
+            model.write('{}'.format(proto))
 
 class CaffeSolver:
 
@@ -174,42 +180,37 @@ class CaffeSolver:
     stored as strings in strings.
     """
 
-    def __init__(self, net_prototxt_path="train_val.prototxt", debug=False):
+    def __init__(self, net_prototxt_path='train_val.prototxt', snapshot = '"snapshot"'):
 
         self.sp = {}
 
         # critical:
-        self.sp['base_lr'] = '0.001'
+        self.sp['base_lr'] = '0.1'
         self.sp['momentum'] = '0.9'
 
         # speed:
         self.sp['test_iter'] = '100'
-        self.sp['test_interval'] = '250'
+        self.sp['test_interval'] = '200'
 
         # looks:
-        self.sp['display'] = '25'
-        self.sp['snapshot'] = '2500'
-        self.sp['snapshot_prefix'] = '"snapshot"'  # string withing a string!
+        self.sp['display'] = '100'
+        self.sp['snapshot'] = '2000'
+        self.sp['snapshot_prefix'] = '"' + snapshot + '"' # string withing a string!
 
         # learning rate policy
-        self.sp['lr_policy'] = '"fixed"'
+        self.sp['lr_policy'] = '"multistep"'
+        self.sp['stepvalue'] = ['35000', '55000', '70000']
 
         # important, but rare:
         self.sp['gamma'] = '0.1'
-        self.sp['weight_decay'] = '0.0005'
+        self.sp['weight_decay'] = '0.0001'
         self.sp['net'] = '"' + net_prototxt_path + '"'
 
         # pretty much never change these.
-        self.sp['max_iter'] = '100000'
+        self.sp['max_iter'] = '70000'
         self.sp['test_initialization'] = 'false'
         self.sp['average_loss'] = '25'  # this has to do with the display.
         self.sp['iter_size'] = '1'  # this is for accumulating gradients
-
-        if (debug):
-            self.sp['max_iter'] = '12'
-            self.sp['test_iter'] = '1'
-            self.sp['test_interval'] = '4'
-            self.sp['display'] = '1'
 
     def add_from_file(self, filepath):
         """
@@ -243,4 +244,5 @@ class CaffeSolver:
                     raise TypeError('All solver parameters must be strings')
             else:
                 f.write('%s: %s\n' % (key, value))
+
 

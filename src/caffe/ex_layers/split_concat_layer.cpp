@@ -20,7 +20,7 @@ void SplitConcatLayer<Dtype>::LayerSetUp(
     split_top_vec_.push_back(split_top_vec_shared_[index].get());
   }
   split_layer_->SetUp(bottom, split_top_vec_);
-  LOG(INFO) << "SplitLayer, top has " << split_top_vec_.size() << " blobs";
+  DLOG(INFO) << "SplitLayer, top has " << split_top_vec_.size() << " blobs";
 
   LayerParameter concat_param = this->layer_param();
   concat_layer_.reset(new ConcatLayer<Dtype>(concat_param));
@@ -52,10 +52,6 @@ void SplitConcatLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     split_layer_->Backward(split_top_vec_, propagate_down, bottom);
   }
 }
-
-#ifdef CPU_ONLY
-STUB_GPU(SplitConcatLayer);
-#endif
 
 INSTANTIATE_CLASS(SplitConcatLayer);
 REGISTER_LAYER_CLASS(SplitConcat);
