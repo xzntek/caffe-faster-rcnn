@@ -18,7 +18,7 @@ template <typename Dtype>
 class Multi1ConvolutionLayer : public Layer<Dtype> {
  public:
   explicit Multi1ConvolutionLayer(const LayerParameter& param)
-      : Layer<Dtype>(param) {}
+      : Layer<Dtype>(param), ZERO_(0) {}
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
@@ -99,30 +99,10 @@ class Multi1ConvolutionLayer : public Layer<Dtype> {
             (Dtype)1., top_data);
     }
   }
-  inline void Forward_Second(const Blob<Dtype>* bottom, Blob<Dtype>* top, const Blob<Dtype>* prod, const int no_zero) {
-    const Dtype* weights = this->blobs_[0]->cpu_data();
-    const Dtype* bottom_data = bottom->cpu_data();
-    Dtype* top_data = top->mutable_cpu_data();
-    im2col_cpu_P(bottom_data, col_buffer_.mutable_cpu_data(), prod->cpu_data());
-    const Dtype* col_buff = col_buffer_.cpu_data();
-    
-    caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, conv_out_channels_,
-          no_zero, kernel_dim_,
-          (Dtype)1., weights, col_buff,
-          (Dtype)0., top_data);
-
-    if (this->bias_term_) {
-      const Dtype* bias = this->blobs_[1]->cpu_data();
-      CHECK_EQ(num_output_, conv_out_channels_);
-      caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num_output_,
-            no_zero, 1, (Dtype)1., bias, bias_multiplier_.cpu_data(),
-            (Dtype)1., top_data);
-    }
-  }
-  inline int CalculateSparsity(const int count, const Dtype* data) {
+  inline int CalculateSparsity(int count, const Dtype* data) {
     int zeros = 0;
-    for (int x = 0; x < count; x ++) {
-      zeros += data[x] == 0;
+    while(count--) {
+      zeros += data[count] == 0;
     }
     return zeros;
   }
@@ -139,8 +119,8 @@ class Multi1ConvolutionLayer : public Layer<Dtype> {
   int output_offset_;
 
   Blob<Dtype> col_buffer_;
-  Blob<Dtype> top_buffer_;
   Blob<Dtype> bias_multiplier_;
+  const Dtype ZERO_;
 };
 
 }  // namespace caffe

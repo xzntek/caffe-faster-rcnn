@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
     FLAGS_iterations << " ms.";
   LOG(INFO) << "Average Total Time: " << total_timer.MilliSeconds() /
     FLAGS_iterations << " ms.";
-  LOG(INFO) << "Total Time: " << total_timer.MilliSeconds() << " ms.";
+  LOG(INFO) << "Total Time: " << total_timer.MilliSeconds() / FLAGS_iterations << " ms.";
   LOG(INFO) << "*** Benchmark ends ***";
 
   return 0;

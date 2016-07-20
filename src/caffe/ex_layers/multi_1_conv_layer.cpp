@@ -223,13 +223,14 @@ void Multi1ConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     caffe_set(bias_multiplier_.count(), Dtype(1),
         bias_multiplier_.mutable_cpu_data());
   }
+// Special Check
   CHECK_EQ(this->num_, 1);
   if (bottom.size() == 2) {
     CHECK_EQ(bottom[1]->num(), top[0]->num());
     CHECK_EQ(bottom[1]->channels(), 1);
     CHECK_EQ(bottom[1]->height(), top[0]->height());
     CHECK_EQ(bottom[1]->width(), top[0]->width());
-    top_buffer_.ReshapeLike(*top[0]);
+    CHECK_EQ(top[0]->height() * top[0]->width(), conv_out_spatial_dim_);
   }
 }
 
@@ -341,6 +342,7 @@ void Multi1ConvolutionLayer<Dtype>::im2col_cpu_P(const Dtype* data_im, Dtype* da
 template <typename Dtype>
 void Multi1ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
+  DLOG(INFO) << "===>>> " << this->layer_param().name() << ", Forward_cpu Start";
   if (bottom.size() == 1) {
 
     Forward_Full(bottom[0], top[0]);
@@ -348,39 +350,71 @@ void Multi1ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
   } else if (bottom.size() == 2) {
 
     const int bottom1_count = bottom[1]->count();
-    int sparsity = CalculateSparsity(bottom1_count, bottom[1]->cpu_data());
+    const int sparsity = CalculateSparsity(bottom1_count, bottom[1]->cpu_data());
     DLOG(INFO) << "===>>> " << this->layer_param().name() << ", sparsity : " << sparsity;
-    if (sparsity == 0 || is_1x1_) {
+
+    if (is_1x1_) {
       Forward_Full(bottom[0], top[0]);
       Dtype* top_data = top[0]->mutable_cpu_data();
       for (int i = 0; i < bottom[0]->channels(); i++) {
         caffe_mul(bottom1_count, top_data, bottom[1]->cpu_data(), top_data);
-        top_data += bottom[1]->count();
+        top_data += bottom1_count;
       }
+      LOG(FATAL) << "Should not happen";
+
     } else if (sparsity == bottom1_count) {
 
       caffe_set(top[0]->count(), Dtype(0), top[0]->mutable_cpu_data());
 
     } else {
+      CHECK_EQ(bottom1_count, out_spatial_dim_);
+      
+      // Forward
+      const int no_zeros = bottom1_count - sparsity;
+      const Dtype* weights = this->blobs_[0]->cpu_data();
+      const Dtype* bottom_data = bottom[0]->cpu_data();
+      im2col_cpu_P(bottom_data, col_buffer_.mutable_cpu_data(), bottom[1]->cpu_data());
+      DLOG(INFO) << this->layer_param().name() << " -- Forward_Second im2col done";
 
-      Forward_Second(bottom[0], &top_buffer_, bottom[1], bottom1_count - sparsity);
+      const Dtype* col_buff = col_buffer_.cpu_data();
+      Dtype* top_data = top[0]->mutable_cpu_data();
+      caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, conv_out_channels_,
+          no_zeros, kernel_dim_,
+          (Dtype)1., weights, col_buff,
+          (Dtype)0., top_data);
+      DLOG(INFO) << this->layer_param().name() << " -- Forward_Second gemm done";
+
+      if (this->bias_term_) {
+        const Dtype* bias = this->blobs_[1]->cpu_data();
+        CHECK_EQ(num_output_, conv_out_channels_);
+        caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num_output_,
+                no_zeros, 1, (Dtype)1., bias, bias_multiplier_.cpu_data(),
+                (Dtype)1., top_data);
+      }
+      DLOG(INFO) << this->layer_param().name() << " -- Forward_Second bias done";
+
+
+
       // Recover
       const int top_dim = conv_out_spatial_dim_;
-      Dtype* top_data = top[0]->mutable_cpu_data();
-      const Dtype* prod_data = top_buffer_.cpu_data();
+      const Dtype* prod_data = top_data + conv_out_channels_ * no_zeros;
+      const Dtype* base_prod = bottom[1]->cpu_data() + bottom[1]->count();
+      top_data += conv_out_channels_ * bottom1_count;
+
       for (int channel = conv_out_channels_; channel; channel--) {
-        const Dtype* prod_ = bottom[1]->cpu_data();
+        const Dtype* prod_ = base_prod;
         for (int x = top_dim; x; x--) {
-          if (*prod_ == 0) {
-            *(top_data++) = 0;
-          } else {
-            *(top_data++) = *(prod_data++) * (*prod_);
+	  Dtype value = *(--prod_);
+          if (value == ZERO_) {
+            *(--top_data) = ZERO_;
+       	  } else {
+            *(--top_data) = *(--prod_data) * value;
           }
-          prod_++;
         }
       }
+      CHECK_EQ(top_data, prod_data);
+      DLOG(INFO) << "===>>> " << this->layer_param().name() << " : sparsity : " << sparsity << " / " << bottom1_count << ", top_dim : " << top_dim << " Forward_cpu END";
     }
-
   } else {
     LOG(FATAL) << "Unsopport bottom size";
   }
