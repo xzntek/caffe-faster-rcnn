@@ -71,6 +71,8 @@ class FrcnnRoiDataLayer : public BasePrefetchingDataLayer<Dtype>  {
   virtual void ShuffleImages();
   virtual unsigned int PrefetchRand();
   virtual void load_batch(Batch<Dtype>* batch);
+  virtual void CheckResetRois(vector<vector<float> > &rois, const string image_path, const float cols, const float rows, const float im_scale);
+  virtual void FlipRois(vector<vector<float> > &rois, const float cols);
 
   // Random Seed /if use multigpu set for synchronization
   shared_ptr<Caffe::RNG> prefetch_rng_;

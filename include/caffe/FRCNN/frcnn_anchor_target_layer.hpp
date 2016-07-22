@@ -71,7 +71,8 @@ class FrcnnAnchorTargetLayer : public Layer<Dtype> {
   int _count;
 // For Debug
   inline void Info_Stds_Means_AvePos(const vector<Point4f<Dtype> > &targets, const vector<int> &labels){
-#ifdef DEBUG
+//#ifdef DEBUG
+#if 1
     CHECK_EQ(targets.size(), labels.size());
     const int n = targets.size();
     for (int index = 0; index < n; index++) {
@@ -90,12 +91,12 @@ class FrcnnAnchorTargetLayer : public Layer<Dtype> {
       means[j] = this->_sum[j] / this->_counts;
       stds[j] = sqrt(this->_squared_sum[j] / this->_counts - means[j]*means[j]);
     }
-    LOG(INFO) << "Info_Stds_Means_AvePos : COUNT : " << this->_counts;
-    LOG(INFO) << "STDS   : " << stds[0] << ", " << stds[1] << ", " << stds[2] << ", " << stds[3];
-    LOG(INFO) << "MEANS  : " << means[0] << ", " << means[1] << ", " << means[2] << ", " << means[3];
+    LOG_EVERY_N(INFO, 1000) << "Info_Stds_Means_AvePos : COUNT : " << this->_counts;
+    LOG_EVERY_N(INFO, 1000) << "STDS   : " << stds[0] << ", " << stds[1] << ", " << stds[2] << ", " << stds[3];
+    LOG_EVERY_N(INFO, 1000) << "MEANS  : " << means[0] << ", " << means[1] << ", " << means[2] << ", " << means[3];
     this->_count++;
-    LOG(INFO) << "num_positive ave : " << float(_fg_sum) / _count;
-    LOG(INFO) << "num_negitive ave : " << float(_bg_sum) / _count;
+    LOG_EVERY_N(INFO, 1000) << "num_positive ave : " << float(_fg_sum) / _count;
+    LOG_EVERY_N(INFO, 1000) << "num_negitive ave : " << float(_bg_sum) / _count;
 #endif
   }
 };

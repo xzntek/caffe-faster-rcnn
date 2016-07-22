@@ -12,7 +12,7 @@ pid=$$
 BUILD=build/examples/FRCNN/test_frcnn.bin
 
 $BUILD --gpu $gpu \
-    --model models/FRCNN/vgg16/test.prototxt \
+    --model models/FRCNN/vgg16/test.proto \
     --weights models/FRCNN/vgg16_faster_rcnn_final.caffemodel \
     --default_c examples/FRCNN/config/voc_config.json \
     --image_root VOCdevkit/VOC2007/JPEGImages/ \

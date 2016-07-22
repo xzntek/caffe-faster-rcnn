@@ -82,43 +82,46 @@ int main(int argc, char** argv){
   std::ofstream otfile(out_file.c_str());
   API::DataPrepare data_load;
   int count = 0;
-  while ( data_load.load_WithDiff(infile) ) {
-    std::string image = data_load.GetImagePath("");
-    cv::Mat cv_image = cv::imread(image_root+image);
-    std::vector<caffe::Frcnn::BBox<float> > results;
-    detector.predict(cv_image, results);
-    otfile << "# " << data_load.GetImageIndex() << std::endl;
-    otfile << image << std::endl;
+  std::string shot_dir;
+  int frames;
+  while ( infile >> shot_dir >> frames ) {
+    otfile << "# " << shot_dir << "\t" << frames << std::endl;
+    for (int ii = 0; ii < frames; ii++) {
+      std::string image;
+      infile >> image;
+      cv::Mat cv_image = cv::imread(image_root + shot_dir + "/" + image);
+      std::vector<caffe::Frcnn::BBox<float> > results;
+      detector.predict(cv_image, results);
+      otfile << "&\t" << image << std::endl;
     
-    float image_thresh = 0;
-    if ( max_per_image > 0 ) {
-      std::vector<float> image_score ;
+      float image_thresh = 0;
+      if ( max_per_image > 0 ) {
+        std::vector<float> image_score ;
+        for (size_t obj = 0; obj < results.size(); obj++) {
+          image_score.push_back(results[obj].confidence) ;
+        }
+        std::sort(image_score.begin(), image_score.end(), std::greater<float>());
+        if ( max_per_image > image_score.size() ) {
+          if ( image_score.size() > 0 ) 
+            image_thresh = image_score.back();
+        } else {
+          image_thresh = image_score[max_per_image-1];
+        }
+      }
+      std::vector<caffe::Frcnn::BBox<float> > filtered_res;
       for (size_t obj = 0; obj < results.size(); obj++) {
-        image_score.push_back(results[obj].confidence) ;
+        if ( results[obj].confidence >= image_thresh ) {
+          filtered_res.push_back( results[obj] );
+        }
       }
-      std::sort(image_score.begin(), image_score.end(), std::greater<float>());
-      if ( max_per_image > image_score.size() ) {
-        if ( image_score.size() > 0 ) 
-          image_thresh = image_score.back();
-      } else {
-        image_thresh = image_score[max_per_image-1];
+      const int ori_res_size = results.size();
+      results = filtered_res;
+      otfile << results.size() << std::endl;
+      for (size_t obj = 0; obj < results.size(); obj++) {
+        otfile << results[obj].id << "  " << INT(results[obj][0]) << " " << INT(results[obj][1]) << " " << INT(results[obj][2]) << " " << INT(results[obj][3]) << "     " << FloatToString(results[obj].confidence) << std::endl;
       }
+      LOG(INFO) << "Handle " << count << " th shot : " << ii << " frame : " << image << ", with image_thresh : " << image_thresh << ", "  << ori_res_size << " -> " << results.size() << " boxes";
     }
-    std::vector<caffe::Frcnn::BBox<float> > filtered_res;
-    for (size_t obj = 0; obj < results.size(); obj++) {
-      if ( results[obj].confidence >= image_thresh ) {
-        filtered_res.push_back( results[obj] );
-      }
-    }
-    const int ori_res_size = results.size();
-    results = filtered_res;
-    
-    otfile << results.size() << std::endl;
-    for (size_t obj = 0; obj < results.size(); obj++) {
-      otfile << results[obj].id << "  " << INT(results[obj][0]) << " " << INT(results[obj][1]) << " " << INT(results[obj][2]) << " " << INT(results[obj][3]) << "     " << FloatToString(results[obj].confidence) << std::endl;
-    }
-    LOG(INFO) << "Handle " << ++count << " th image : " << image << ", with image_thresh : " << image_thresh << ", " 
-        << ori_res_size << " -> " << results.size() << " boxes";
   }
   infile.close();
   otfile.close();

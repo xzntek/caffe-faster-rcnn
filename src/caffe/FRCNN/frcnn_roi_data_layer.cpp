@@ -174,6 +174,34 @@ unsigned int FrcnnRoiDataLayer<Dtype>::PrefetchRand() {
   return (*prefetch_rng)();
 }
 
+template <typename Dtype>
+void FrcnnRoiDataLayer<Dtype>::CheckResetRois(vector<vector<float> > &rois, const string image_path, const float cols, const float rows, const float im_scale) {
+  for (int i = 0; i < rois.size(); i++) {
+    bool ok = rois[i][DataPrepare::X1] >= 0 && rois[i][DataPrepare::Y1] >= 0 && 
+        rois[i][DataPrepare::X2] < cols && rois[i][DataPrepare::Y2] < rows;
+    if (ok == false) {
+      DLOG(INFO) << "Roi Data Check Failed : " << image_path << " [" << i << "]";
+      DLOG(INFO) << " row : " << rows << ",  col : " << cols << ", im_scale : " << im_scale << " | " << rois[i][DataPrepare::X1] << ", " << rois[i][DataPrepare::Y1] << ", " << rois[i][DataPrepare::X2] << ", " << rois[i][DataPrepare::Y2];
+      rois[i][DataPrepare::X1] = std::max(0.f, rois[i][DataPrepare::X1]);
+      rois[i][DataPrepare::Y1] = std::max(0.f, rois[i][DataPrepare::Y1]);
+      rois[i][DataPrepare::X2] = std::min(cols-1, rois[i][DataPrepare::X2]);
+      rois[i][DataPrepare::Y2] = std::min(rows-1, rois[i][DataPrepare::Y2]);
+    }
+  }
+}
+
+template <typename Dtype>
+void FrcnnRoiDataLayer<Dtype>::FlipRois(vector<vector<float> > &rois, const float cols) {
+  for (int i = 0; i < rois.size(); i++) {
+    CHECK_GE(rois[i][DataPrepare::X1], 0 ) << "rois[i][DataPrepare::X1] : " << rois[i][DataPrepare::X1];
+    CHECK_LT(rois[i][DataPrepare::X2], cols ) << "rois[i][DataPrepare::X2] : " << rois[i][DataPrepare::X2];
+    float old_x1 = rois[i][DataPrepare::X1];
+    float old_x2 = rois[i][DataPrepare::X2];
+    rois[i][DataPrepare::X1] = cols - old_x2 - 1; 
+    rois[i][DataPrepare::X2] = cols - old_x1 - 1; 
+  }
+}
+
 // This function is called on prefetch thread
 template <typename Dtype>
 void FrcnnRoiDataLayer<Dtype>::load_batch(Batch<Dtype> *batch) {
@@ -267,21 +295,14 @@ void FrcnnRoiDataLayer<Dtype>::load_batch(Batch<Dtype> *batch) {
   top_label[4] = 0;
 
   vector<vector<float> > rois = roi_database_[index];
+  // Check and Reset rois
+  CheckResetRois(rois, image_database_[index], cv_img.cols, cv_img.rows, im_scale);
+  
+  // Flip
   if (do_mirror) {
-    for (int i = 0; i < rois.size(); i++) {
-      CHECK_GE(rois[i][DataPrepare::X1], 0 ) << "rois[i][DataPrepare::X1] : " << rois[i][DataPrepare::X1];
-      CHECK_LT(rois[i][DataPrepare::X2], cv_img.cols ) << "rois[i][DataPrepare::X2] : " << rois[i][DataPrepare::X2];
-      CHECK_LT(rois[i][DataPrepare::Y2], cv_img.rows ) << "rois[i][DataPrepare::Y2] : " << rois[i][DataPrepare::Y2];
-      float old_x1 = rois[i][DataPrepare::X1];
-      float old_x2 = rois[i][DataPrepare::X2];
-      rois[i][DataPrepare::X1] = cv_img.cols - old_x2 - 1; 
-      rois[i][DataPrepare::X2] = cv_img.cols - old_x1 - 1; 
-      CHECK_GE(rois[i][0], 0); 
-      CHECK_GE(rois[i][DataPrepare::X2], rois[i][DataPrepare::X1]) << image_database_[index] << " = " << roi_database_[index][i][0] << ", " << roi_database_[index][i][1] << ", " << roi_database_[index][i][2] << ", " << roi_database_[index][i][3] << ", " << roi_database_[index][i][4] << std::endl 
-            << "rois[i][0] : " << rois[i][0] << ", rois[i][2] : " << rois[i][2] << " | cv_img.cols : " << cv_img.cols;
-      CHECK_GE(rois[i][DataPrepare::Y2], rois[i][DataPrepare::Y1]) << "rois[i][Y1] : " << rois[i][DataPrepare::Y1] << ", rois[i][Y2] : " << rois[i][DataPrepare::Y2] << " | cv_img.cols : " << cv_img.cols;
-    }
+    FlipRois(rois, cv_img.cols);
   }
+
   CHECK_EQ(rois.size(), channels-1);
   for (int i = 1; i < channels; i++) {
     CHECK_EQ(rois[i-1].size(), DataPrepare::NUM);
@@ -290,15 +311,22 @@ void FrcnnRoiDataLayer<Dtype>::load_batch(Batch<Dtype> *batch) {
     top_label[5 * i + 2] = rois[i-1][DataPrepare::X2] * im_scale; // x2
     top_label[5 * i + 3] = rois[i-1][DataPrepare::Y2] * im_scale; // y2
     top_label[5 * i + 4] = rois[i-1][DataPrepare::LABEL];         // label
-    
-    // CHECK
-    CHECK_GE(top_label[5 * i + 0], 0);
-    CHECK_GE(top_label[5 * i + 1], 0);
-    CHECK_LE(top_label[5 * i + 2], top_label[1]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
-            << im_scale << " | " << rois[i-1][DataPrepare::X2] << " , " << top_label[5 * i + 2];
-    CHECK_LE(top_label[5 * i + 3], top_label[0]) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " 
-            << im_scale << " | " << rois[i-1][DataPrepare::Y2] << " , " << top_label[5 * i + 3];
-    
+
+    if (top_label[5 * i + 3] >= top_label[0]) {
+      DLOG(INFO) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " << im_scale << " | " << rois[i-1][DataPrepare::Y2] << " , " << top_label[5 * i + 3];
+    }
+    if (top_label[5 * i + 2] >= top_label[1]) {
+      DLOG(INFO) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " << im_scale << " | " << rois[i-1][DataPrepare::X2] << " , " << top_label[5 * i + 2];
+      top_label[5 * i + 2] = top_label[1] - 1;
+    }
+    if (top_label[5 * i + 0] < 0) {
+      top_label[5 * i + 0] = 0;
+      DLOG(INFO) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " << im_scale << " | " << rois[i-1][DataPrepare::X2] << " , " << top_label[5 * i + 2];
+    }
+    if (top_label[5 * i + 1] < 0) {
+      top_label[5 * i + 1] = 0;
+      DLOG(INFO) << mirror << " row : " << src.rows << ",  col : " << src.cols << ", im_scale : " << im_scale << " | " << rois[i-1][DataPrepare::Y2] << " , " << top_label[5 * i + 3];
+    }
   }
 
   trans_time += timer.MicroSeconds();

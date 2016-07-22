@@ -72,11 +72,11 @@ public:
       int label, x1, y1, x2, y2; 
       int diff_;
       CHECK(infile >> label >> x1 >> y1 >> x2 >> y2 >> diff_); 
-      x1 --; y1 --; x2 --; y2 --;
+      //x1 --; y1 --; x2 --; y2 --;
       // CHECK LABEL
       CHECK(label>0 && label<FrcnnParam::n_classes) << "illegal label : " << label << ", should >= 1 and < " << FrcnnParam::n_classes;
-      CHECK_GE(x2, x1) << "illegal coordinate : " << x1 << ", " << x2; 
-      CHECK_GE(y2, y1) << "illegal coordinate : " << y1 << ", " << y2;
+      CHECK_GE(x2, x1) << "illegal coordinate : " << x1 << ", " << x2 << " : " << this->image_path; 
+      CHECK_GE(y2, y1) << "illegal coordinate : " << y1 << ", " << y2 << " : " << this->image_path;
       vector<float> roi(DataPrepare::NUM);
       roi[DataPrepare::LABEL] = label;
       roi[DataPrepare::X1] = x1;
