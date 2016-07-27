@@ -11,12 +11,11 @@ fi
 pid=$$
 BUILD=build/examples/FRCNN/loc_test_frcnn.bin
 
-time $BUILD --gpu $gpu \
+time GLOG_log_dir=matlab/FRCNN/For_LOC/two/googlenet_v1/log $BUILD --gpu $gpu \
     --model matlab/FRCNN/For_LOC/two/googlenet_v1/test.proto \
     --weights matlab/FRCNN/For_LOC/two/googlenet_v1/googlenet_v1_faster_rcnn_final.caffemodel \
     --default_c matlab/FRCNN/For_LOC/two/trecvid.json \
     --image_root matlab/FRCNN/For_LOC/LOC/filtered \
-    --image_list matlab/FRCNN/For_LOC/dataset/test.list \
-    --out_file matlab/FRCNN/For_LOC/two/googlenet_v1/out/2_test_list_googlenet_v1_${pid}.frcnn \
+    --image_list matlab/FRCNN/For_LOC/dataset/test.list_1_5296 \
+    --out_file matlab/FRCNN/For_LOC/two/googlenet_v1/out/TWO_1_5296_test_list_googlenet_v1_${pid}.frcnn \
     --max_per_image 100
-

@@ -33,7 +33,7 @@ float FrcnnParam::rpn_negative_overlap;
 // If an anchor statisfied by positive and negative conditions set to negative
 bool FrcnnParam::rpn_clobber_positives;
 float FrcnnParam::rpn_fg_fraction;
-float FrcnnParam::rpn_batchsize;
+int FrcnnParam::rpn_batchsize;
 float FrcnnParam::rpn_nms_thresh;
 int FrcnnParam::rpn_pre_nms_top_n;
 int FrcnnParam::rpn_post_nms_top_n;
@@ -74,6 +74,7 @@ int FrcnnParam::feat_stride;
 std::vector<float> FrcnnParam::anchors;
 float FrcnnParam::test_score_thresh;
 int FrcnnParam::n_classes;
+int FrcnnParam::iter_test;
 
 void FrcnnParam::load_param(const std::string default_config_path) {
   std::vector<float> v_tmp;
@@ -109,7 +110,7 @@ void FrcnnParam::load_param(const std::string default_config_path) {
   FrcnnParam::rpn_clobber_positives =
       static_cast<bool>(extract_int("rpn_clobber_positives", default_map));
   FrcnnParam::rpn_fg_fraction = extract_float("rpn_fg_fraction", default_map);
-  FrcnnParam::rpn_batchsize = extract_float("rpn_batchsize", default_map);
+  FrcnnParam::rpn_batchsize = extract_int("rpn_batchsize", default_map);
   FrcnnParam::rpn_nms_thresh = extract_float("rpn_nms_thresh", default_map);
   FrcnnParam::rpn_pre_nms_top_n = extract_int("rpn_pre_nms_top_n", default_map);
   FrcnnParam::rpn_post_nms_top_n = extract_int("rpn_post_nms_top_n", default_map);
@@ -141,7 +142,8 @@ void FrcnnParam::load_param(const std::string default_config_path) {
   FrcnnParam::feat_stride = extract_int("feat_stride", default_map);
   FrcnnParam::anchors = extract_vector("anchors", default_map);
   FrcnnParam::test_score_thresh = extract_float("test_score_thresh", default_map);
-  FrcnnParam::n_classes = extract_float("n_classes", default_map);
+  FrcnnParam::n_classes = extract_int("n_classes", default_map);
+  FrcnnParam::iter_test = extract_int("iter_test", default_map);
 }
 
 void FrcnnParam::print_param(){
@@ -194,6 +196,7 @@ void FrcnnParam::print_param(){
   LOG(INFO) << "anchors_size         : " << FrcnnParam::anchors.size();
   LOG(INFO) << "test_score_thresh    : " << FrcnnParam::test_score_thresh;
   LOG(INFO) << "n_classes            : " << FrcnnParam::n_classes;
+  LOG(INFO) << "iter_test            : " << FrcnnParam::iter_test;
 }
 
 } // namespace detection

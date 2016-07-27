@@ -2144,7 +2144,7 @@ layer {
   bottom: "inception_5b/output"
   top: "cls_score"
   inner_product_param {
-    num_output: 3
+    num_output: 9
   }
 }
 layer {
@@ -2153,7 +2153,7 @@ layer {
   bottom: "inception_5b/output"
   top: "bbox_pred"
   inner_product_param {
-    num_output: 12
+    num_output: 36
   }
 }
 layer {

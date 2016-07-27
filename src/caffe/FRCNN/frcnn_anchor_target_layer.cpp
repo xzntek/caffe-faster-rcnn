@@ -184,7 +184,7 @@ void FrcnnAnchorTargetLayer<Dtype>::Forward_cpu(
   DLOG(ERROR) << "debug_for_highest_over : " << debug_for_highest_over;
 
   // subsample positive labels if we have too many
-  int num_fg = FrcnnParam::rpn_fg_fraction * FrcnnParam::rpn_batchsize;
+  int num_fg = float(FrcnnParam::rpn_fg_fraction) * FrcnnParam::rpn_batchsize;
   const int fg_inds_size = std::count(labels.begin(), labels.end(), 1);
   DLOG(ERROR) << "========== supress_positive labels";
   if (fg_inds_size > num_fg) {

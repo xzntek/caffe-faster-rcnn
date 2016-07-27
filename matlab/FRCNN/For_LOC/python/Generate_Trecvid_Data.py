@@ -91,12 +91,12 @@ def load_annotation(filename, _class_to_ind):
 
 if __name__ == '__main__':
     #Save_Name = './dataset/8.train_val'
-    ImageSets = ['./LOC/LOC_Split/trecvid_val_8.txt', './LOC/LOC_Split/trecvid_train_8.txt']
-    ImageSets = ['./LOC/LOC_Split/trecvid_train_Animal_Music.txt', './LOC/LOC_Split/trecvid_val_Animal_Music.txt']
-    ImageSets = ['./LOC/LOC_Split/trecvid_5_manual_train.txt']
-    ImageSets = ['./LOC/LOC_Split/trecvid_train_8.txt', './LOC/LOC_Split/trecvid_val_8.txt', './LOC/LOC_Split/trecvid_train_Animal_Music.txt', './LOC/LOC_Split/trecvid_val_Animal_Music.txt']
+    ImageSets = ['../LOC/LOC_Split/trecvid_val_8.txt', '../LOC/LOC_Split/trecvid_train_8.txt']
+    ImageSets = ['../LOC/LOC_Split/trecvid_train_Animal_Music.txt', '../LOC/LOC_Split/trecvid_val_Animal_Music.txt']
+    ImageSets = ['../LOC/LOC_Split/trecvid_5_manual_train.txt']
+    ImageSets = ['../LOC/LOC_Split/trecvid_train_8.txt', '../LOC/LOC_Split/trecvid_val_8.txt', '../LOC/LOC_Split/trecvid_train_Animal_Music.txt', '../LOC/LOC_Split/trecvid_val_Animal_Music.txt']
     num_cls = 10
-    Save_Name = './dataset/{}.train_val'.format(num_cls)
+    Save_Name = '../dataset/{}.train_val'.format(num_cls)
     _wind_to_ind, _class_to_ind = Get_Class_Ind(num_cls)
     for ImageSet in ImageSets:
         if not os.path.isfile(ImageSet):
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             if line == '':
                 break
             line = line.strip('\n')
-            xml_path = './LOC/BBOX/{}.xml'.format(line)
+            xml_path = '../LOC/BBOX/{}.xml'.format(line)
             rec = load_annotation(xml_path, _wind_to_ind)
 
             out_file.write('# {}\n'.format(ids))

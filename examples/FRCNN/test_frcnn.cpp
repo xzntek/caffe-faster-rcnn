@@ -75,8 +75,9 @@ int main(int argc, char** argv){
   API::Set_Config(default_config_file);
   API::Detector detector(proto_file, model_file);
 
-  LOG(INFO) << "image list is  : " << image_list;
-  LOG(INFO) << "output file is : " << out_file;
+  LOG(INFO) << "image  list    : " << image_list;
+  LOG(INFO) << "output file    : " << out_file;
+  LOG(INFO) << "image  root    : " << image_root;
   LOG(INFO) << "max_per_image  : " << max_per_image;
   std::ifstream infile(image_list.c_str());
   std::ofstream otfile(out_file.c_str());

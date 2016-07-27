@@ -56,5 +56,6 @@
              -80,   -168,   95,    183,
              -168,  -344,   183,   359",
  "test_score_thresh": "0.05",
- "n_classes": "9"
+ "n_classes": "9",
+ "iter_test": "2"
 }

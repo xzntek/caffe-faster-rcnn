@@ -45,7 +45,7 @@ public:
   // If an anchor statisfied by positive and negative conditions set to negative
   static bool rpn_clobber_positives;
   static float rpn_fg_fraction;
-  static float rpn_batchsize;
+  static int rpn_batchsize;
   static float rpn_nms_thresh;
   static int rpn_pre_nms_top_n;
   static int rpn_post_nms_top_n;
@@ -87,6 +87,7 @@ public:
   static std::vector<float> anchors;
   static float test_score_thresh;
   static int n_classes;
+  static int iter_test;
   // ========================================
   static void load_param(const std::string default_config_path);
   static void print_param();

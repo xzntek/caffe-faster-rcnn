@@ -75,8 +75,9 @@ int main(int argc, char** argv){
   API::Set_Config(default_config_file);
   API::Detector detector(proto_file, model_file);
 
-  LOG(INFO) << "image list is  : " << image_list;
-  LOG(INFO) << "output file is : " << out_file;
+  LOG(INFO) << "image list     : " << image_list;
+  LOG(INFO) << "output file    : " << out_file;
+  LOG(INFO) << "image_root     : " << image_root;
   LOG(INFO) << "max_per_image  : " << max_per_image;
   std::ifstream infile(image_list.c_str());
   std::ofstream otfile(out_file.c_str());
@@ -84,15 +85,19 @@ int main(int argc, char** argv){
   int count = 0;
   std::string shot_dir;
   int frames;
-  while ( infile >> shot_dir >> frames ) {
-    otfile << "# " << shot_dir << "\t" << frames << std::endl;
+  std::string HASH;
+  int ids_;
+  while ( infile >> HASH >> ids_ >> shot_dir >> frames ) {
+    CHECK(HASH == "#");
+    CHECK(ids_ >= 0);
+    otfile << "#\t" << ids_ << "\t" << shot_dir << "\t" << frames << std::endl;
     for (int ii = 0; ii < frames; ii++) {
       std::string image;
       infile >> image;
-      cv::Mat cv_image = cv::imread(image_root + shot_dir + "/" + image);
+      CHECK(image.find(".jpeg") != std::string::npos);
+      cv::Mat cv_image = cv::imread(image_root + "/" + shot_dir + "/" + image);
       std::vector<caffe::Frcnn::BBox<float> > results;
       detector.predict(cv_image, results);
-      otfile << "&\t" << image << std::endl;
     
       float image_thresh = 0;
       if ( max_per_image > 0 ) {
@@ -116,12 +121,13 @@ int main(int argc, char** argv){
       }
       const int ori_res_size = results.size();
       results = filtered_res;
-      otfile << results.size() << std::endl;
+      otfile << "&\t" << image << "\t" << results.size() << std::endl;
       for (size_t obj = 0; obj < results.size(); obj++) {
         otfile << results[obj].id << "  " << INT(results[obj][0]) << " " << INT(results[obj][1]) << " " << INT(results[obj][2]) << " " << INT(results[obj][3]) << "     " << FloatToString(results[obj].confidence) << std::endl;
       }
-      LOG(INFO) << "Handle " << count << " th shot : " << ii << " frame : " << image << ", with image_thresh : " << image_thresh << ", "  << ori_res_size << " -> " << results.size() << " boxes";
+      LOG(INFO) << "Handle " << count << " th shot[" << shot_dir << "] : " << ii << " / " << frames << " frame : " << image << ", with image_thresh : " << image_thresh << ", "  << ori_res_size << " -> " << results.size() << " boxes";
     }
+    count ++;
   }
   infile.close();
   otfile.close();
