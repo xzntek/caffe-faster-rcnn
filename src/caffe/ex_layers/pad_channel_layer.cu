@@ -17,7 +17,6 @@ __global__ void pad_forward_kernel(const int dst_count, const int src_channels, 
   }
 }
 
-
 template <typename Dtype>
 void PadChannelLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
         const vector<Blob<Dtype>*>& top){

@@ -14,7 +14,8 @@ echo "Usage parse_log.sh /path/to/your.log"
 exit
 fi
 LOG=`basename $1`
-sed -n '/Iteration .* Testing net/,/Iteration *. loss/p' $1 > aux.txt
+#sed -n '/Iteration .* Testing net/,/Iteration *. loss/p' $1 > aux.txt
+sed -n '/Iteration .* Testing net/,/Test net output #1/p' $1 > aux.txt
 sed -i '/Waiting for data/d' aux.txt
 sed -i '/prefetch queue empty/d' aux.txt
 sed -i '/Iteration .* loss/d' aux.txt

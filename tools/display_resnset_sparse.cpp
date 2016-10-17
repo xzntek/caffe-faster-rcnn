@@ -182,7 +182,7 @@ int main(int argc, char** argv){
     LOG(INFO) << output_name << " = " << mean_score << loss_msg_stream.str();
   }
 
-  float threshes[] = {0, 0.001, 0.01, 0.1, 1, 10};
+  float threshes[] = {0, 0.001, 0.01, 0.1, 1};
   const int count = sizeof(threshes) / sizeof(float);
   for (int i = 0; i < count; i++) {
     LOG(INFO) << "Thresh (" << std::setfill(' ') << std::setw(4) << threshes[i] << ")  ~~~~~~~~~~~~~~~~~~~~~~ Count values <= " << threshes[i];

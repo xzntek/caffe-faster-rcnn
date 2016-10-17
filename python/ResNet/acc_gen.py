@@ -6,6 +6,7 @@ import sys, os, argparse
 import os.path as osp
 import wrap #this contains some tools that we need
 import wrap_identity_acc
+sys.setrecursionlimit(1000000)
 
 def parse_args():
     """
@@ -33,6 +34,9 @@ def parse_args():
     parser.add_argument('--model', dest='model',
                         help='model proto dir',
                         default='examples/cifar10_resnet', type=str)
+    parser.add_argument('--crop_size', dest='crop_size',
+                        help='crop_size',
+                        default=28, type=int)
 
     parser.add_argument('--ACC_model_1', dest='acc1',
                         help='accalerate model for first convolution',
@@ -46,6 +50,10 @@ def parse_args():
                         help='activate function for single 1x1 convolution',
                         default='bn', type=str)
 
+    parser.add_argument("--FirstTrue", action="store_true", dest="first")
+    parser.add_argument("--FirstFalse", action="store_false", dest="first")
+    parser.set_defaults(first=True)
+
     args = parser.parse_args()
 
     return args
@@ -53,11 +61,11 @@ def parse_args():
 if __name__ == '__main__':
     args   = parse_args()
 
-    cifar10_dir = '{}_{}_{}_A{}'.format(args.model, args.acc1, args.acc2, args.single)
-
-    print 'cifar10_dir : {}'.format(args.model)
     layer_num  = args.resnet_N*6+2
     print 'Resnet N: %d, Layer: %d' %(args.resnet_N, layer_num)
+
+    cifar10_dir = '{}{}_F{}_{}_{}_A{}'.format(args.model, layer_num, args.first, args.acc1, args.acc2, args.single)
+    print 'cifar10_dir : {}'.format(cifar10_dir)
     #Make Dir
     if not os.path.isdir(cifar10_dir):
         os.makedirs(cifar10_dir)
@@ -78,41 +86,33 @@ if __name__ == '__main__':
     solverprototxt = wrap.CaffeSolver(net_prototxt_path = trainval_proto, snapshot = snapshot_prefix);
     solverprototxt.write(solver_file)
 
-    train_data, train_label = wrap.prepare_data(args.lmdb_train, args.mean_file, args.batch_size_train, True)
-    test_data, test_label = wrap.prepare_data(args.lmdb_test, args.mean_file, args.batch_size_test, False)
+    train_data, train_label = wrap.prepare_data(args.lmdb_train, args.mean_file, args.batch_size_train, True, args.crop_size)
+    test_data, test_label = wrap.prepare_data(args.lmdb_test, args.mean_file, args.batch_size_test, False, args.crop_size)
 
     assert args.acc1 == 'bn' or args.acc1 == 'pn' or args.acc1 == 'none'
     assert args.acc2 == 'bn' or args.acc2 == 'pn' or args.acc2 == 'none'
 
     #caffemodel = wrap_for_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N)
-    main_proto = wrap_identity_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N, No_BN = False, PACC = [args.acc1, args.acc2], PAddtioni = args.single)
+    main_proto = wrap_identity_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N, PACC = [args.acc1, args.acc2], PAddtioni = args.single, First_Acc = args.first)
     name = '"CIFAR10_Resnet_%d"' % (args.resnet_N*6+2)
     wrap.write_prototxt(trainval_proto, name, [to_proto(train_data, train_label), main_proto])
-    
-    """
-    # For prototxt without BN
-    noBN_proto = wrap_identity_acc.resnet_cifar_acc(test_data, test_label, args.resnet_N, No_BN = True , PADD = [args.acc1, args.acc2], PAddtioni = args.single)
-    NoBN_proto_path = osp.join(cifar10_dir, 'cifar10_res{}_NoBN.proto'.format(layer_num))
-    name = '"CIFAR10_Resnet_%d_NoBN"' % (args.resnet_N*6+2)
-    wrap.write_prototxt(NoBN_proto_path, name, [to_proto(train_data, train_label), noBN_proto])
-    """
 
     shell = osp.join(cifar10_dir, 'train_{}.sh'.format(layer_num))
     with open(shell, 'w') as shell_file:
-        shell_file.write('GLOG_log_dir={} build/tools/caffe train --solver {} --gpu $1'.format(log, solver_file))
+        shell_file.write('{}\nGLOG_log_dir={} build/tools/caffe train --solver {} --gpu $gpu'.format(wrap.gpu_shell_string(), log, solver_file))
 
     shell = osp.join(cifar10_dir, 'dis_{}.sh'.format(layer_num))
     weights = osp.join('{}_iter_{}.caffemodel'.format(snapshot_prefix, solverprototxt.sp['max_iter']))
     with open(shell, 'w') as shell_file:
-        shell_file.write('gpu=$1\nmodel={}\n'.format(trainval_proto))
+        shell_file.write('{}\nmodel={}\n'.format(wrap.gpu_shell_string(), trainval_proto))
         shell_file.write('weights={}\niters=100\n'.format(weights))
-        shell_file.write('./build/tools/display_resnset_sparse --gpu $gpu --model $model --weights $weights --iterations $iters 2>&1 | tee {}'.format(osp.join(cifar10_dir,'display_$$.log')))
+        shell_file.write('./build/tools/display_resnset_sparse --gpu $gpu --model $model --weights $weights --iterations $iters 2>&1 | tee {}'.format(osp.join(log, 'display_$$.log')))
 
     shell = osp.join(cifar10_dir, 'time_{}.sh'.format(layer_num))
     with open(shell, 'w') as shell_file:
-        shell_file.write('gpu=$1\nmodel={}\n'.format(trainval_proto))
+        shell_file.write('{}\nmodel={}\n'.format(wrap.gpu_shell_string(), trainval_proto))
         shell_file.write('weights={}\niters=50\n'.format(weights))
-        shell_file.write('OMP_NUM_THREADS=1 ./build/tools/time_for_forward --gpu $gpu --model $model --weights $weights --iterations $iters 2>&1 | tee {}'.format(osp.join(cifar10_dir,'time_$$.log')))
+        shell_file.write('OMP_NUM_THREADS=1 ./build/tools/time_for_forward --gpu $gpu --model $model --weights $weights --iterations $iters 2>&1 | tee {}'.format(osp.join(log, 'time_$$.log')))
 
     ignore = osp.join(cifar10_dir, '.gitignore')
     with open(ignore, 'w') as ignore_file:

@@ -146,4 +146,3 @@ A is an m-by-k sparse matrix in the CSR format, A' is the transpose of A.
 }
 
 }   // namespace caffe
-

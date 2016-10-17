@@ -4,9 +4,12 @@ import lmdb
 from PIL import Image
 import scipy.io as sio
 import os
-
-caffe_root = '%s/../../' %(os.getcwd())
-sys.path.insert(0,caffe_root+'python')
+if os.path.exists('./python/caffe'):
+    sys.path.append('./python')
+else:
+    print 'Error : caffe(pycaffe) could not be found'
+    sys.exit(0)
+caffe_root = '%s'%(os.getcwd())
 import caffe
 from caffe.proto import caffe_pb2
 
@@ -29,8 +32,6 @@ def binaryproto2img():
     """
 
     sio.savemat('mean_cifar10.mat',{'mean':arr[0]})
-
-
 
     return
 

@@ -84,6 +84,37 @@ def proposed_residual_block(input, name, out_channel, stride = 1, First = False)
 
     return L.Eltwise(conv2, input, name = name+'-sum', ex_top = [name+'-sum'], operation=P.Eltwise.SUM)
 
+def bottleneck_block(input, name, in_channel, out_channel, stride = 1):
+    nBottleneckPlane = out_channel / 4;
+    if in_channel == out_channel: # -- most Residual Units have this shape
+        identity = input
+        # conv1x1
+        conv = BN_ReLU(input = input, name = name+'-1')
+        conv = Conv2D(input = conv, name = name+'-1-conv', stride = stride, kernal_size = 1, pad = 0, num_output = nBottleneckPlane)
+        # conv3x3
+        conv = BN_ReLU(input = conv, name = name+'-2')
+        conv = Conv2D(input = conv, name = name+'-2-conv', stride = 1, kernal_size = 3, pad = 1, num_output = nBottleneckPlane)
+        # conv1x1
+        conv = BN_ReLU(input = conv, name = name+'-3')
+        conv = Conv2D(input = conv, name = name+'-3-conv', stride = 1, kernal_size = 1, pad = 0, num_output = out_channel)
+
+        # short cut
+        return L.Eltwise(conv, identity, name = name+'-sum', ex_top = [name+'-sum'], operation=P.Eltwise.SUM)
+    else: # -- Residual Units for increasing dimensions
+        block = BN_ReLU(input = input, name = name+'-0')
+        # conv1x1
+        conv = Conv2D(input = block, name = name+'-1-conv', stride = stride, kernal_size = 1, pad = 0, num_output = nBottleneckPlane)
+        # conv3x3
+        conv = BN_ReLU(input = conv, name = name+'-2')
+        conv = Conv2D(input = conv, name = name+'-2-conv', stride = 1, kernal_size = 3, pad = 1, num_output = nBottleneckPlane)
+        # conv1x1
+        conv = BN_ReLU(input = conv, name = name+'-3')
+        conv = Conv2D(input = conv, name = name+'-3-conv', stride = 1, kernal_size = 1, pad = 0, num_output = out_channel)
+        # shortcut
+        shortcut = Conv2D(input = block, name = name+'-0-conv', stride = stride, kernal_size = 1, pad = 0, num_output = out_channel)
+        return L.Eltwise(conv, shortcut, name = name+'-sum', ex_top = [name+'-sum'], operation=P.Eltwise.SUM)
+
+
 # Generate resnet cifar10 train && test prototxt. n_size control number of layers.
 # The total number of layers is  6 * n_size + 2. Here I don't know any of implementation 
 # which can contain simultaneously TRAIN && TEST phase. 
@@ -140,7 +171,7 @@ def resnet_cifar_pro(data, label, n_size=3):
     layer = BN_ReLU(input = layer, name = 'final-post')
 
     ## Ave Pooling
-    global_pool = L.Pooling(layer, name = 'global_pool', pool=P.Pooling.AVE, global_pooling=True)
+    global_pool = L.Pooling(layer, name = 'global_pool', ex_top = ['global_pool'], pool=P.Pooling.AVE, global_pooling=True)
 
     fc = L.InnerProduct(global_pool, name = 'fc', ex_top = ['fc'], param=[dict(lr_mult=1, decay_mult=1), dict(lr_mult=2, decay_mult=1)],num_output=10,
             bias_filler=dict(type='constant', value=0), weight_filler=dict(type='gaussian', std=0.01))
@@ -150,16 +181,42 @@ def resnet_cifar_pro(data, label, n_size=3):
 
     return to_proto(loss, acc)
 
+def identity_layer(input, name, in_channel, out_channel, count, stride):
+    layer = bottleneck_block(input, name+'.0', in_channel, out_channel, stride = stride)
+    for i in xrange(1, count):
+        layer = bottleneck_block(layer, name+'.{}'.format(i), out_channel, out_channel, stride = 1)
+    return layer
+
+def resnet_identity_mapping(data, label, depth, fc_n):
+    assert((depth - 2) % 9 == 0), 'depth should be 9n+2 (e.g., 164 or 1001 in the paper)'
+    n = (depth - 2) / 9
+    print(' | ResNet-{} CIFAR-10'.format(depth))
+    nStages = [16, 64, 128, 256]
+    layer = Conv2D(input = data, name = 'init', num_output = nStages[0]) #-- one conv at the beginning (spatial size: 32x32)
+    layer = identity_layer(input = layer, name = 'res1', in_channel = nStages[0], out_channel = nStages[1], count = n, stride = 1) #-- Stage 1 (spatial size: 32x32)
+    layer = identity_layer(input = layer, name = 'res2', in_channel = nStages[1], out_channel = nStages[2], count = n, stride = 2) #-- Stage 2 (spatial size: 16x16)
+    layer = identity_layer(input = layer, name = 'res3', in_channel = nStages[2], out_channel = nStages[3], count = n, stride = 2) #-- Stage 3 (spatial size: 8x8)
+    #After Last Res Unit, with a BN and ReLU
+    layer = BN_ReLU(input = layer, name = 'final-post')
+    ## Ave Pooling
+    global_pool = L.Pooling(layer, name = 'global_pool', pool=P.Pooling.AVE, global_pooling=True)
+    fc = L.InnerProduct(global_pool, name = 'fc', ex_top = ['fc'], param=[dict(lr_mult=1, decay_mult=1), dict(lr_mult=2, decay_mult=1)], num_output=fc_n,
+            bias_filler=dict(type='constant', value=0), weight_filler=dict(type='gaussian', std=0.01))
+    loss = L.SoftmaxWithLoss(fc, label, name = 'softmaxloss', ex_top = ['loss'])
+    acc = L.Accuracy(fc, label, name = 'accuracy', ex_top = ['accuracy'])
+    return to_proto(loss, acc)
+
+
 ##def Data
-def prepare_data(lmdb, mean_file, batch_size=100, train=True):
+def prepare_data(lmdb, mean_file, batch_size=100, train=True, crop_size=28):
     if train==True:
         data, label = L.Data(source=lmdb, backend=P.Data.LMDB, batch_size=batch_size, ntop=2,
                 name = 'data', ex_top = ['data','label'],
-                transform_param=dict(mean_file=mean_file, crop_size=28, mirror=True), include=dict(phase=getattr(caffe_pb2, 'TRAIN')))
+                transform_param=dict(mean_file=mean_file, crop_size=crop_size, mirror=True), include=dict(phase=getattr(caffe_pb2, 'TRAIN')))
     else:
         data, label = L.Data(source=lmdb, backend=P.Data.LMDB, batch_size=batch_size, ntop=2,
                 name = 'data', ex_top = ['data','label'],
-                transform_param=dict(mean_file=mean_file, crop_size=28), include=dict(phase=getattr(caffe_pb2, 'TEST')))
+                transform_param=dict(mean_file=mean_file, crop_size=crop_size), include=dict(phase=getattr(caffe_pb2, 'TEST')))
 
     #return data, label
     return data, label
@@ -170,6 +227,13 @@ def write_prototxt(proto_name, name, protos):
         model.write('name: %s\n' % (name))
         for proto in protos:
             model.write('{}'.format(proto))
+
+def gpu_shell_string():
+    A = 'if [ ! -n "$1" ] ;then\n'
+    B = '\techo "\\$1 is empty, default is 0"\n'
+    C = '\tgpu=0\nelse\n'
+    D = '\techo "use $1-th gpu"\n\tgpu=$1\nfi'
+    return '{}{}{}{}'.format(A,B,C,D)
 
 class CaffeSolver:
 
@@ -199,7 +263,7 @@ class CaffeSolver:
 
         # learning rate policy
         self.sp['lr_policy'] = '"multistep"'
-        self.sp['stepvalue'] = ['35000', '55000', '70000']
+        self.sp['stepvalue'] = ['32000', '48000', '64000']
 
         # important, but rare:
         self.sp['gamma'] = '0.1'
@@ -207,8 +271,8 @@ class CaffeSolver:
         self.sp['net'] = '"' + net_prototxt_path + '"'
 
         # pretty much never change these.
-        self.sp['max_iter'] = '70000'
-        self.sp['test_initialization'] = 'false'
+        self.sp['max_iter'] = '64000'
+        self.sp['test_initialization'] = 'true'
         self.sp['average_loss'] = '25'  # this has to do with the display.
         self.sp['iter_size'] = '1'  # this is for accumulating gradients
 

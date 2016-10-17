@@ -28,7 +28,7 @@ def ConvS_SC(name, input, out_channel, stride, Addition):
     mul  = L.SplitConcat(relu, name = name+'-mul', ex_top = [name+'-mul'], convolution_param=dict(num_output=out_channel))
     return mul
 
-def acc_residual_block(input, name, out_channel, stride = 1, First = False, ACC = ['pn','bn'], Addition = 'none', No_BN = False):
+def acc_residual_block(input, name, out_channel, stride = 1, First = False, ACC = ['pn','bn'], Addition = 'none'):
 
     # First. 3x3 convolution
     layer = input
@@ -36,10 +36,7 @@ def acc_residual_block(input, name, out_channel, stride = 1, First = False, ACC 
         acc   = ConvS_SC(input = layer, name = name+'-1', out_channel= out_channel, stride = stride, Addition = Addition)
 
     if First == False: # For First
-        if No_BN == False:
-            layer = wrap.BN_ReLU(input = layer, name = name+'-1')
-        else:
-            layer = L.ReLU(input, name = name+'-1-relu', in_place = True)
+        layer = wrap.BN_ReLU(input = layer, name = name+'-1')
     else:
         layer = input
 
@@ -47,8 +44,11 @@ def acc_residual_block(input, name, out_channel, stride = 1, First = False, ACC 
         acc   = ConvS_SC(input = layer, name = name+'-1', out_channel= out_channel, stride = stride, Addition = Addition)
 
     conv1 = wrap.Conv2D(input = layer, name = name+'-1-conv', stride = stride, num_output = out_channel)
+
     if ACC[0] == 'pn' or ACC[0] == 'bn':
         conv1 = L.Eltwise(acc, conv1, name = name+'-acc1', ex_top = [name+'-acc1'], operation=P.Eltwise.PROD)
+    else:
+        assert ACC[0] == False
     
     # Second. 3x3 convolution
     layer = conv1
@@ -56,17 +56,17 @@ def acc_residual_block(input, name, out_channel, stride = 1, First = False, ACC 
     if ACC[1] == 'pn':
         acc   = ConvS_SC(input = layer, name = name+'-2', out_channel= out_channel, stride = 1, Addition = Addition)
 
-    if No_BN == False:
-        layer = wrap.BN_ReLU(input = conv1, name = name+'-2')
-    else:
-        layer = L.ReLU(conv1, name = name+'-2-relu', in_place = True)
+    layer = wrap.BN_ReLU(input = conv1, name = name+'-2')
 
     if ACC[1] == 'bn':
         acc   = ConvS_SC(input = layer, name = name+'-2', out_channel= out_channel, stride = 1, Addition = Addition)
 
     conv2 = wrap.Conv2D(input = layer, name = name+'-2-conv', num_output = out_channel)
+
     if ACC[1] == 'pn' or ACC[1] == 'bn':
         conv2 = L.Eltwise(acc, conv2, name = name+'-acc2', ex_top = [name+'-acc2'], operation=P.Eltwise.PROD)
+    else:
+        assert ACC[1] == False
 
     if stride != 1:
         #input = self.Conv2D(input = input, name = name+'-A1-conv', kernal_size = 1, stride = stride, pad = 0, num_output = out_channel)
@@ -75,15 +75,16 @@ def acc_residual_block(input, name, out_channel, stride = 1, First = False, ACC 
 
     return L.Eltwise(conv2, input, name = name+'-sum', ex_top = [name+'-sum'], operation=P.Eltwise.SUM)
 
-def resnet_cifar_acc(data, label, n_size=3, No_BN = False, PACC = ['pn','bn'], PAddtioni = 'bn'):
+def resnet_cifar_acc(data, label, n_size=3, PACC = ['pn','bn'], PAddtioni = 'bn', First_Acc = True):
     # Convolution 0
     layer = wrap.Conv2D(input = data, name = 'init', num_output = 16)
-    if No_BN == False:
-        layer = wrap.BN_ReLU(input = layer, name = 'init')
-    else:
-        layer = L.ReLU(layer, name = 'init-relu', in_place=True)
+    layer = wrap.BN_ReLU(input = layer, name = 'init')
 
-    layer = acc_residual_block(input = layer, name = 'res1.0', stride = 1, out_channel = 16, First = True, ACC = [False, False], Addition = 'bn', No_BN = No_BN)
+    #layer = acc_residual_block(input = layer, name = 'res1.0', stride = 1, out_channel = 16, First = True, ACC = [False, False], Addition = PAddtioni)
+    if First_Acc == True:
+        layer = acc_residual_block(input = layer, name = 'res1.0', stride = 1, out_channel = 16, First = True, ACC = PACC, Addition = PAddtioni)
+    else:
+        layer = acc_residual_block(input = layer, name = 'res1.0', stride = 1, out_channel = 16, First = True, ACC = [False, False], Addition = PAddtioni)
 
     # From Last To Top
     ACC = [ PACC for i in xrange(5) ]
@@ -94,17 +95,17 @@ def resnet_cifar_acc(data, label, n_size=3, No_BN = False, PACC = ['pn','bn'], P
     
     #32*32, c=16
     for i in xrange(n_size - 1):
-        layer = acc_residual_block(input = layer, name = 'res1.{}'.format(i+1), stride = 1, out_channel = 16, ACC = ACC[0], Addition = Addition[0], No_BN = No_BN)
+        layer = acc_residual_block(input = layer, name = 'res1.{}'.format(i+1), stride = 1, out_channel = 16, ACC = ACC[0], Addition = Addition[0])
 
     #16*16, c=32
-    layer = acc_residual_block(input = layer, name = 'res2.0', stride = 2, out_channel = 32, ACC = ACC[1], Addition = Addition[1], No_BN = No_BN)
+    layer = acc_residual_block(input = layer, name = 'res2.0', stride = 2, out_channel = 32, ACC = ACC[1], Addition = Addition[1])
     for i in xrange(n_size - 1):
-        layer = acc_residual_block(input = layer, name = 'res2.{}'.format(i+1), stride = 1, out_channel = 32, ACC = ACC[2], Addition = Addition[2], No_BN = No_BN)
+        layer = acc_residual_block(input = layer, name = 'res2.{}'.format(i+1), stride = 1, out_channel = 32, ACC = ACC[2], Addition = Addition[2])
 
     #8*8, c=64
-    layer = acc_residual_block(input = layer, name = 'res3.0', stride = 2, out_channel = 64, ACC=ACC[3], Addition = Addition[3], No_BN = No_BN)
+    layer = acc_residual_block(input = layer, name = 'res3.0', stride = 2, out_channel = 64, ACC=ACC[3], Addition = Addition[3])
     for i in xrange(n_size - 1):
-        layer = acc_residual_block(input = layer, name = 'res3.{}'.format(i+1), stride = 1, out_channel = 64, ACC = ACC[4], Addition = Addition[4], No_BN = No_BN)
+        layer = acc_residual_block(input = layer, name = 'res3.{}'.format(i+1), stride = 1, out_channel = 64, ACC = ACC[4], Addition = Addition[4])
 
     #After Last Res Unit, with a BN and ReLU
     layer = wrap.BN_ReLU(input = layer, name = 'final-post')
