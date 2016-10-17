@@ -1,45 +1,25 @@
 from __future__ import print_function
-import numpy as np
+from wrap import Conv2D, BN, BN_ReLU, shortcut_block, caffe_pb2
+from wrap import prepare_data, gpu_shell_string, write_prototxt
 from special_net_spec import layers as L, params as P, to_proto
-from caffe.proto import caffe_pb2
 
 ## Shorcut Method
 shortcutType = 'C'  # Use Conv
 shortcutType = 'B'  # ImageNet
 shortcutType = 'A'  # Cifar10
 
-# helper function for building ResNet block structures 
-# The function below does computations: bottom--->conv--->BatchNorm
-def Conv2D(name, input, num_output, kernal_size = 3, pad = 1, weight_filler = dict(type='xavier'), stride = 1, bias_filler = dict(type='constant',value=0), bias_term = False):
-    param = [dict(lr_mult=1,decay_mult=1), dict(lr_mult=2,decay_mult=0)]
-    if bias_term == True:
-        return L.Convolution(input, name=name+'-conv', ex_top = [name+'-conv'], kernel_size=kernal_size, pad = pad, stride = stride, num_output=num_output, weight_filler=weight_filler, bias_filler=bias_filler)
-    else:
-        return L.Convolution(input, name=name+'-conv', ex_top = [name+'-conv'], kernel_size=kernal_size, pad = pad, stride = stride, num_output=num_output, weight_filler=weight_filler, bias_term=False)
-
-def BN(name, input):
-    #temp = L.BatchNorm(input, name = name+'-bn', ex_top = [name+'-bn'], param = [dict(lr_mult=0, decay_mult=0),dict(lr_mult=0, decay_mult=0),dict(lr_mult=0, decay_mult=0)])
-    temp = L.BatchNorm(input, name = name+'-bn', ex_top = [name+'-bn']) ## Upgrade by the New Caffe
-    return L.Scale(temp, name = name+'-scale', in_place = True, bias_term=True)
-
-def BN_ReLU(name, input):
+def Acc_BN_ReLU(name, input):
     temp = BN(name, input)
-    return L.ReLU(temp, name = name+'-relu', in_place = True)
+    return L.ReLU(temp, name = name+'-relu', ex_top = [name+'-relu'], in_place = False)
 
-def shortcut_block(input, name, in_channel, out_channel, stride):
-    useConv = shortcutType == 'C' or (shortcutType == 'B' and nInputPlane != nOutputPlane)
-    if useConv:
-        return Conv2D(input = input, name = name+'-shortcut', stride = stride, kernal_size = 1, pad = 0, num_output = out_channel)
-    elif in_channel != out_channel:
-        pname = name+'-shortcut-pool'
-        pool  = L.Pooling(input, name = pname, ex_top = [pname], pool=P.Pooling.AVE, kernel_size=2, stride=2)
-        pname = name+'-shortcut-pad'
-        pad   = L.PadChannel(pool, name = pname, ex_top = [pname], num_channels_to_pad=out_channel-in_channel)
-        return pad
-    else:
-        return input
+def acc_until(input, name, num_output, stride, kernel_size, pad):
+    conv = Conv2D(input = input, name = name, stride = stride, kernal_size = kernel_size, pad = pad, num_output = num_output)
+    acc  = Conv2D(input = input, name = name+'-acc', stride = stride, kernal_size = kernel_size, pad = pad, num_output = 1)
+    acc  = Acc_BN_ReLU(input = acc, name = name+'-acc')
+    acc  = L.Tile(acc, name = name+'-acc-tile', ex_top=[name+'-acc-tile'],tile_param=dict(tiles=num_output))
+    return L.Eltwise(conv, acc, name = name+'-acc-prod', ex_top = [name+'-acc-prod'], operation=P.Eltwise.PROD)
 
-def bottleneck_block(input, name, in_channel, out_channel, stride = 1):
+def bottleneck_acc(input, name, in_channel, out_channel, stride = 1):
     nBottleneckPlane = out_channel / 4;
     if in_channel == out_channel: # -- most Residual Units have this shape
         identity = input
@@ -70,11 +50,13 @@ def bottleneck_block(input, name, in_channel, out_channel, stride = 1):
         # shortcut = shortcut_block(block, name = name+'-shortcut', in_channel = in_channel, out_channel = out_channel, stride = stride); ## 'B' Type
         return L.Eltwise(conv, shortcut, name = name+'-sum', ex_top = [name+'-sum'], operation=P.Eltwise.SUM)
 
-def basic_block(input, name, in_channel, out_channel, stride = 1):
+def basic_acc(input, name, in_channel, out_channel, stride = 1):
     block = BN_ReLU(input = input, name = name+'-1')
-    block = Conv2D(input = block, name = name+'-1', stride = stride, kernal_size = 3, pad = 1, num_output = out_channel)
+    ##block = Conv2D(input = block, name = name+'-1', stride = stride, kernal_size = 3, pad = 1, num_output = out_channel)
+    block = acc_until(input = block, name = name+'-1', num_output = out_channel, stride = stride, kernel_size = 3, pad = 1)
     block = BN_ReLU(input = block, name = name+'-2')
-    block = Conv2D(input = block, name = name+'-2', stride = 1, kernal_size = 3, pad = 1, num_output = out_channel)
+    #block = Conv2D(input = block, name = name+'-2', stride = 1, kernal_size = 3, pad = 1, num_output = out_channel)
+    block = acc_until(input = block, name = name+'-2', num_output = out_channel, stride = 1, kernel_size = 3, pad = 1)
     ## CIFAR 10
     shortcut = shortcut_block(input = input, name = name+'-shortcut', in_channel = in_channel, out_channel = out_channel, stride = stride)
     return L.Eltwise(block, shortcut, name = name+'-sum', ex_top = [name+'-sum'], operation=P.Eltwise.SUM)
@@ -98,13 +80,13 @@ def resnet_identity_mapping(data, label, depth, fc_n, bottleneck):
         assert ((depth-2) % 9 == 0)
         n = (depth - 2) / 9
         nStages = [16, 64, 128, 256]
-        layer_block = bottleneck_block
+        layer_block = bottleneck_acc
     else:
         print('Prefer bottleneck structure : 16 16 32 64')
         assert ((depth-2) % 6 == 0)
         n = (depth - 2) / 6
         nStages = [16, 16, 32, 64]
-        layer_block = basic_block
+        layer_block = basic_acc
     layer = Conv2D(input = data, name = 'init', num_output = nStages[0]) #-- one conv at the beginning (spatial size: 32x32)
     layer = identity_layer(input = layer, name = 'res1', in_channel = nStages[0], out_channel = nStages[1], count = n, stride = 1, layer_block = layer_block) #-- Stage 1 (spatial size: 32x32)
     layer = identity_layer(input = layer, name = 'res2', in_channel = nStages[1], out_channel = nStages[2], count = n, stride = 2, layer_block = layer_block) #-- Stage 2 (spatial size: 16x16)

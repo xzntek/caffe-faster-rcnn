@@ -17,7 +17,7 @@ This interface is expected to continue to evolve as Caffe gains new capabilities
 for specifying nets. In particular, the automatically generated layer names
 are not guaranteed to be forward-compatible.
 """
-import _init_paths
+import find_caffe
 from collections import OrderedDict, Counter
 from caffe.proto import caffe_pb2
 from google import protobuf

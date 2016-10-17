@@ -3,7 +3,7 @@ import find_caffe
 from special_net_spec import layers as L, params as P, to_proto
 import sys, os, argparse
 import os.path as osp
-import wrap #this contains some tools that we need
+import wrap_acc #this contains some tools that we need
 from caffe_solver import CaffeSolver
 sys.setrecursionlimit(1000000)
 
@@ -41,7 +41,7 @@ def parse_args():
                         default='False', type=str)
     parser.add_argument('--model', dest='model',
                         help='model proto dir',
-                        default='examples/Identity_resnet_cifar10', type=str)
+                        default='examples/Acc_Identity_resnet_cifar10', type=str)
     # support only two type original and identity
     args = parser.parse_args()
 
@@ -82,20 +82,20 @@ if __name__ == '__main__':
     solverprototxt = CaffeSolver(net_prototxt_path = trainval_proto, snapshot = snapshot_prefix)
     solverprototxt.write(solver_file)
 
-    train_data, train_label = wrap.prepare_data(args.lmdb_train, args.mean_file, args.batch_size_train, True, args.crop_size)
-    test_data, test_label = wrap.prepare_data(args.lmdb_test, args.mean_file, args.batch_size_test, False, args.crop_size)
+    train_data, train_label = wrap_acc.prepare_data(args.lmdb_train, args.mean_file, args.batch_size_train, True, args.crop_size)
+    test_data, test_label = wrap_acc.prepare_data(args.lmdb_test, args.mean_file, args.batch_size_test, False, args.crop_size)
 
     use_bottleneck = args.bottleneck == 'True'
-    caffemodel = wrap.resnet_identity_mapping(test_data, test_label, args.resnet_layer, args.fc_n, use_bottleneck)
+    caffemodel = wrap_acc.resnet_identity_mapping(test_data, test_label, args.resnet_layer, args.fc_n, use_bottleneck)
     
     name  = '"CIFAR_Resnet_%d"' % (args.resnet_layer)
     data_proto = to_proto(train_data, train_label)
-    wrap.write_prototxt(trainval_proto, name, [data_proto, caffemodel])
+    wrap_acc.write_prototxt(trainval_proto, name, [data_proto, caffemodel])
 
     # train shell
     shell = osp.join(cifar_dir, 'train_{}.sh'.format(layer_num))
     with open(shell, 'w') as shell_file:
-        shell_file.write('{}\n./build/tools/caffe train --solver {} --gpu $gpu 2>&1 | tee {}/warmup.log'.format(wrap.gpu_shell_string(), solver_warmup_file, log))
+        shell_file.write('{}\n./build/tools/caffe train --solver {} --gpu $gpu 2>&1 | tee {}/warmup.log'.format(wrap_acc.gpu_shell_string(), solver_warmup_file, log))
         W = osp.join('{}_iter_{}.caffemodel'.format(snapshot_warm_prefix, solver_warm_prototxt.sp['max_iter']))
         shell_file.write('\n\nGLOG_log_dir={} ./build/tools/caffe train --solver {} --gpu $gpu --weights {}'.format(log, solver_file, W))
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     shell = osp.join(cifar_dir, 'time_{}.sh'.format(layer_num))
     weights = osp.join('{}_iter_{}.caffemodel'.format(snapshot_prefix, solverprototxt.sp['max_iter']))
     with open(shell, 'w') as shell_file:
-        shell_file.write('{}\nmodel={}\n'.format(wrap.gpu_shell_string(), trainval_proto))
+        shell_file.write('{}\nmodel={}\n'.format(wrap_acc.gpu_shell_string(), trainval_proto))
         shell_file.write('weights={}\niters=50\n'.format(weights))
         shell_file.write('OMP_NUM_THREADS=1 GLOG_log_dir={} ./build/tools/time_for_forward --gpu $gpu --model $model --weights $weights --iterations $iters'.format(log))
 

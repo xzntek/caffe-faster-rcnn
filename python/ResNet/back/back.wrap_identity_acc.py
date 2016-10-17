@@ -25,7 +25,7 @@ def ConvS_SC(name, input, out_channel, stride, Addition):
     # For Loss
     # global_single.append(L.L2Loss(relu, name = name+'-single-relu-L2', ex_top = [name+'-single-relu-L2'], loss_weight = 1))
 
-    mul  = L.SplitConcat(relu, name = name+'-mul', ex_top = [name+'-mul'], convolution_param=dict(num_output=out_channel))
+    mul  = L.Tile(relu, name = name+'-tile', ex_top = [name+'-tile'], tile_param=dict(tiles=out_channel))
     return mul
 
 def acc_residual_block(input, name, out_channel, stride = 1, First = False, ACC = ['pn','bn'], Addition = 'none'):

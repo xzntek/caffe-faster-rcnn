@@ -61,6 +61,7 @@ python ./python/ResNet/cifar10_resnet_model.py --N 13 --restype identity --model
     --lmdb_test examples/cifar10/cifar10_test_lmdb_pad_4 --batch_size_train 64 --batch_size_test 100 --crop_size 32 --mean_file examples/cifar10/pad_4_mean.binaryproto
 python ./python/ResNet/cifar10_resnet_model.py --N 15 --restype identity --model examples/PAD_4_identity_resnet_cifar10 --lmdb_train examples/cifar10/cifar10_train_lmdb_pad_4 \
     --lmdb_test examples/cifar10/cifar10_test_lmdb_pad_4 --batch_size_train 64 --batch_size_test 100 --crop_size 32 --mean_file examples/cifar10/pad_4_mean.binaryproto
+
 # For 164 1001, we need bottleneck struct
 # Cifar 100 [56 layers]:69.34%,  3*3->3*3
 # [110 layers]:72.71%

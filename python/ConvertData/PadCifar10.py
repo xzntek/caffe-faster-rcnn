@@ -45,7 +45,8 @@ def PadCifar10(Train_or_Test, pad_pixels):
         #CxHxW to HxWxC in cv2
         image = np.transpose(data, (1,2,0))
         shape = image.shape
-    print 'Count the number of data are %d' %count
+
+    print 'Count the number of data are %d' %(count+1)
 
     print 'Original Shape : %d %d %d' %(shape[2], shape[0], shape[1])
     print 'Transposed Shape : {}'.format(shape)
@@ -76,5 +77,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print 'Convert cifar10 LMDB %s Data' % args.type
     
-    PadCifar100(args.type=='Train', args.Pad)
-
+    PadCifar10(args.type=='Train', args.pad)
