@@ -181,7 +181,8 @@ int main(int argc, char** argv){
     LOG(INFO) << output_name << " = " << mean_score << loss_msg_stream.str();
   }
 
-  float threshes[] = {0, 0.001, 0.01, 0.1};
+  //float threshes[] = {0, 0.001, 0.01, 0.1};
+  float threshes[] = {0};
   const int count = sizeof(threshes) / sizeof(float);
   for (int i = 0; i < count; i++) {
     LOG(INFO) << "Thresh (" << std::setfill(' ') << std::setw(4) << threshes[i] << ")  ~~~~~~~~~~~~~~~~~~~~~~ Count values <= " << threshes[i];
@@ -193,7 +194,10 @@ int main(int argc, char** argv){
       const int count = Values[index].Count(thresh);
       const string name = Values[index].Name();
       double ratio = double(count) / total;
-      LOG(INFO) << std::setfill(' ') << std::setw(10) << name << "\tratio : " << ratio << "\t" << count << " / " << total;
+      LOG(INFO) << std::setfill(' ') << std::setw(10) << name << "\tratio : " 
+			<< std::setfill(' ') << std::setw(10) << ratio << "\t" 
+			<< std::setfill(' ') << std::setw(10) << count << " / " 
+			<< std::setfill(' ') << std::setw(10) << total;
       Total += total / 100.f;
       Count += count / 100.f;
     }

@@ -107,6 +107,14 @@ if __name__ == '__main__':
         shell_file.write('weights={}\niters=50\n'.format(weights))
         shell_file.write('OMP_NUM_THREADS=1 GLOG_log_dir={} ./build/tools/time_for_forward --gpu $gpu --model $model --weights $weights --iterations $iters'.format(log))
 
+    # display_resnet_sparse
+    shell = osp.join(cifar_dir, 'dis_{}.sh'.format(layer_num))
+    weights = osp.join('{}_iter_{}.caffemodel'.format(snapshot_prefix, solverprototxt.sp['max_iter']))
+    with open(shell, 'w') as shell_file:
+        shell_file.write('{}\nmodel={}\n'.format(wrap_acc.gpu_shell_string(), trainval_proto))
+        shell_file.write('weights={}\niters=100\n'.format(weights))
+        shell_file.write('OMP_NUM_THREADS=1 GLOG_log_dir={} ./build/tools/display_resnset_sparse --gpu $gpu --model $model --weights $weights --iterations $iters'.format(log))
+
     # git ignore file
     ignore = osp.join(cifar_dir, '.gitignore')
     with open(ignore, 'w') as ignore_file:

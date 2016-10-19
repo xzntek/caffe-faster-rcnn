@@ -39,7 +39,7 @@ def shortcut_block(input, name, in_channel, out_channel, stride):
     else:
         return input
 
-def bottleneck_block(input, name, in_channel, out_channel, stride = 1):
+def bottleneck_block(input, name, in_channel, out_channel, stride = 1, first = False):
     nBottleneckPlane = out_channel / 4;
     if in_channel == out_channel: # -- most Residual Units have this shape
         identity = input
@@ -70,8 +70,10 @@ def bottleneck_block(input, name, in_channel, out_channel, stride = 1):
         # shortcut = shortcut_block(block, name = name+'-shortcut', in_channel = in_channel, out_channel = out_channel, stride = stride); ## 'B' Type
         return L.Eltwise(conv, shortcut, name = name+'-sum', ex_top = [name+'-sum'], operation=P.Eltwise.SUM)
 
-def basic_block(input, name, in_channel, out_channel, stride = 1):
+def basic_block(input, name, in_channel, out_channel, stride = 1, first = False):
     block = BN_ReLU(input = input, name = name+'-1')
+    if first:
+        input = block
     block = Conv2D(input = block, name = name+'-1', stride = stride, kernal_size = 3, pad = 1, num_output = out_channel)
     block = BN_ReLU(input = block, name = name+'-2')
     block = Conv2D(input = block, name = name+'-2', stride = 1, kernal_size = 3, pad = 1, num_output = out_channel)
@@ -84,8 +86,8 @@ def basic_block(input, name, in_channel, out_channel, stride = 1):
 # which can contain simultaneously TRAIN && TEST phase. 
 # ==========================Note here==============================
 # !!! SO YOU have to include TRAIN && TEST by your own AFTER you use the script to generate the prototxt !!!
-def identity_layer(input, name, in_channel, out_channel, count, stride, layer_block):
-    layer = layer_block(input, name+'.0', in_channel, out_channel, stride = stride)
+def identity_layer(input, name, in_channel, out_channel, count, stride, layer_block, first = False):
+    layer = layer_block(input, name+'.0', in_channel, out_channel, stride = stride, first = first)
     for i in xrange(1, count):
         layer = layer_block(layer, name+'.{}'.format(i), out_channel, out_channel, stride = 1)
     return layer
@@ -106,7 +108,7 @@ def resnet_identity_mapping(data, label, depth, fc_n, bottleneck):
         nStages = [16, 16, 32, 64]
         layer_block = basic_block
     layer = Conv2D(input = data, name = 'init', num_output = nStages[0]) #-- one conv at the beginning (spatial size: 32x32)
-    layer = identity_layer(input = layer, name = 'res1', in_channel = nStages[0], out_channel = nStages[1], count = n, stride = 1, layer_block = layer_block) #-- Stage 1 (spatial size: 32x32)
+    layer = identity_layer(input = layer, name = 'res1', in_channel = nStages[0], out_channel = nStages[1], count = n, stride = 1, layer_block = layer_block, first = True)#-- Stage 1 (spatial size: 32x32)
     layer = identity_layer(input = layer, name = 'res2', in_channel = nStages[1], out_channel = nStages[2], count = n, stride = 2, layer_block = layer_block) #-- Stage 2 (spatial size: 16x16)
     layer = identity_layer(input = layer, name = 'res3', in_channel = nStages[2], out_channel = nStages[3], count = n, stride = 2, layer_block = layer_block) #-- Stage 3 (spatial size: 8x8)
     #After Last Res Unit, with a BN and ReLU

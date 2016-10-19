@@ -69,13 +69,13 @@ if __name__ == '__main__':
     trainval_proto = osp.join(cifar_dir, 'cifar_res{}_trainval.proto'.format(layer_num))
 
     #Generate warmup solver
-    solver_warmup_file = osp.join(cifar_dir, 'solver_{}.warmup'.format(layer_num))
-    snapshot_warm_prefix = osp.join(snapshot, 'cifar_res{}_warmup'.format(layer_num))
-    solver_warm_prototxt = CaffeSolver(net_prototxt_path = trainval_proto, snapshot = snapshot_warm_prefix)
-    solver_warm_prototxt.sp['snapshot'] = '600'
-    solver_warm_prototxt.sp['base_lr'] = '0.01'
-    solver_warm_prototxt.sp['max_iter'] = '600'
-    solver_warm_prototxt.write(solver_warmup_file)
+    #solver_warmup_file = osp.join(cifar_dir, 'solver_{}.warmup'.format(layer_num))
+    #snapshot_warm_prefix = osp.join(snapshot, 'cifar_res{}_warmup'.format(layer_num))
+    #solver_warm_prototxt = CaffeSolver(net_prototxt_path = trainval_proto, snapshot = snapshot_warm_prefix)
+    #solver_warm_prototxt.sp['snapshot'] = '600'
+    #solver_warm_prototxt.sp['base_lr'] = '0.01'
+    #solver_warm_prototxt.sp['max_iter'] = '600'
+    #solver_warm_prototxt.write(solver_warmup_file)
     #Generate solver
     solver_file = osp.join(cifar_dir, 'solver_{}.proto'.format(layer_num))
     snapshot_prefix = osp.join(snapshot, 'cifar_res{}'.format(layer_num))
@@ -95,9 +95,11 @@ if __name__ == '__main__':
     # train shell
     shell = osp.join(cifar_dir, 'train_{}.sh'.format(layer_num))
     with open(shell, 'w') as shell_file:
-        shell_file.write('{}\n./build/tools/caffe train --solver {} --gpu $gpu 2>&1 | tee {}/warmup.log'.format(wrap.gpu_shell_string(), solver_warmup_file, log))
-        W = osp.join('{}_iter_{}.caffemodel'.format(snapshot_warm_prefix, solver_warm_prototxt.sp['max_iter']))
-        shell_file.write('\n\nGLOG_log_dir={} ./build/tools/caffe train --solver {} --gpu $gpu --weights {}'.format(log, solver_file, W))
+        #shell_file.write('{}\n./build/tools/caffe train --solver {} --gpu $gpu 2>&1 | tee {}/warmup.log'.format(wrap.gpu_shell_string(), solver_warmup_file, log))
+        shell_file.write('{}'.format(wrap.gpu_shell_string()))
+        #W = osp.join('{}_iter_{}.caffemodel'.format(snapshot_warm_prefix, solver_warm_prototxt.sp['max_iter']))
+        #shell_file.write('\n\nGLOG_log_dir={} ./build/tools/caffe train --solver {} --gpu $gpu --weights {}'.format(log, solver_file, W))
+        shell_file.write('\n\nGLOG_log_dir={} ./build/tools/caffe train --solver {} --gpu $gpu'.format(log, solver_file))
 
     # count forward time shell
     shell = osp.join(cifar_dir, 'time_{}.sh'.format(layer_num))
