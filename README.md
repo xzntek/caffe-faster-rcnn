@@ -1,11 +1,9 @@
 # Special Feature for My Caffe 
 
 - Clone from the official caffe, will continuely be up to date by the official caffe code
-- Add faster rcnn joint train and test \[DONE\]
-- Add action recognition \[DONE\]
-- Add spatial transform network \[Not Started\]
-- Speed up\[DOING\]
-- With demos including all tasks above ^_^
+- Faster rcnn joint train and test \[DONE\]
+- Action recognition (Two Stream) \[DONE\]
+- With demos including above tasks ^_^
 
 ## Faster RCNN End-To-End
 
