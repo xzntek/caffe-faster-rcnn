@@ -15,23 +15,32 @@ This repository contains a C++ reimplementation of the Python code([py-faster-rc
 All following steps, you should do these in the $CAFFE\_ROOT path.
 
 ### Demo
-Using **sh example/FRCNN/demo.sh**, the will process five pictures in the examples/FRCNN/images , and put results into examples/FRCNN/results .
+Using **sh example/FRCNN/demo\_frcnn.sh**, the will process five pictures in the examples/FRCNN/images , and put results into examples/FRCNN/results .
 
 Note: You should prepare the trained caffemodel into models/FRCNN/ as ZF\_faster\_rcnn\_final.caffemodel
 
 ### Train
-Using **sh example/FRCNN/train.sh**, the will start train voc2007 data using ZF model.
+Using **sh examples/FRCNN/zf/train\_frcnn.sh **, the will start train voc2007 data using ZF model.
 
-- VOCdevkit should be put into $CAFFE\_ROOT, ** ln -s $YOUR\_VOCdevkit\_Path $CAFFE\_ROOT/VOCdevkit
+- VOCdevkit should be put into $CAFFE\_ROOT
+- ln -s $YOUR\_VOCdevkit\_Path $CAFFE\_ROOT/VOCdevkit
 - ZF pretrain model should be put into models/FRCNN/ as ZF.v2.caffemodel
 
+### Test
+Using **sh examples/FRCNN/zf/test\_frcnn.sh **, the will start test voc2007 test data using the trained ZF model.
+
+- First Step of This Shell : Test all voc-2007-test images and output results in a text file.
+- Second Step of This Shell : Compare the results with the ground truth file and calculate the mAP.
+
 ### Detail
+
+Shells and prototxts for different models are listed in the examples/FRCNN and models/FRCNN
 
 More details in the code.
 
 ### Commands, Rebase From Caffe Master
 
-**For up to data with official caffe**
+**For synchronous with official caffe**
 
 - git remote add caffe https://github.com/BVLC/caffe.git
 - git fetch caffe
