@@ -1,42 +1,64 @@
-# Special Feature for My Caffe 
+# Special Feature for This Caffe Repository
 
-- Clone from the official caffe, will continuely be up to date by the official caffe code
-- Faster rcnn joint train and test \[DONE\]
-- Action recognition (Two Stream) \[DONE\]
-- With demos including above tasks ^_^
+- Clone from the official [Caffe](https://github.com/BVLC/caffe), will continuely be up-to-date by the official caffe code
+- Faster rcnn joint train, test and evaluate
+- Action recognition (Two Stream CNN)
 
-## Faster RCNN End-To-End
+## Faster RCNN
 
 ### Disclaimer
 The official Faster R-CNN code (written in MATLAB) is [available](https://github.com/ShaoqingRen/faster_rcnn) here. If your goal is to reproduce the results in our NIPS 2015 paper, please use the [official](https://github.com/ShaoqingRen/faster_rcnn) code.
 
 This repository contains a C++ reimplementation of the Python code([py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn)). This C++ implementation is built on the offcial [caffe](https://github.com/BVLC/caffe), I will continue to update this code for improvement and up-to-date by offcial caffe.
 
-All following steps, you should do these in the $CAFFE\_ROOT path.
+All following steps, you should do these in the `$CAFFE_ROOT` path.
 
 ### Demo
-Using **sh example/FRCNN/demo\_frcnn.sh**, the will process five pictures in the examples/FRCNN/images , and put results into examples/FRCNN/results .
+Using `sh example/FRCNN/demo\_frcnn.sh`, the will process five pictures in the `examples/FRCNN/images`, and put results into `examples/FRCNN/results`.
 
-Note: You should prepare the trained caffemodel into models/FRCNN/ as ZF\_faster\_rcnn\_final.caffemodel
+Note: You should prepare the trained caffemodel into `models/FRCNN`, such as `ZF_faster_rcnn_final.caffemodel` for ZF model.
 
-### Train
-Using **sh examples/FRCNN/zf/train\_frcnn.sh **, the will start train voc2007 data using ZF model.
+### Prepare for training and evaluation
+The list of training data is `examples/FRCNN/dataset/voc2007.trainval`.
 
-- VOCdevkit should be put into $CAFFE\_ROOT
-- ln -s $YOUR\_VOCdevkit\_Path $CAFFE\_ROOT/VOCdevkit
+The list of testing data is `examples/FRCNN/dataset/voc2007.trainval`.
+
+Create symlinks for the PASCAL VOC dataset `ln -s $YOUR_VOCdevkit_Path $CAFFE_ROOT/VOCdevkit`.
+As shown in VGG example `models/FRCNN/vgg16/train_val.proto`, the original pictures should appear at `$CAFFE_ROOT/VOCdevkit/VOC2007/JPEGImages/`. (Check window\_data\_param in FrcnnRoiData)
+
+If you want to train Faster R-CNN on your own dataset, you may prepare custom dataset list.
+The format is as below
+```
+# image-id
+image-name
+number of boxes
+label x1 y1 x2 y2 difficulty
+...
+```
+
+### Training
+`sh examples/FRCNN/zf/train\_frcnn.sh` will start training process of voc2007 data using ZF model.
+
+If you use the provided training script, please make sure:
+- VOCdevkit is within $CAFFE\_ROOT and VOC2007 in within VOCdevkit
 - ZF pretrain model should be put into models/FRCNN/ as ZF.v2.caffemodel
 
-### Test
-Using **sh examples/FRCNN/zf/test\_frcnn.sh **, the will start test voc2007 test data using the trained ZF model.
+`examples/FRCNN/convert_model.py` transform the parameters of `bbox_pred` layer by mean and stds values,
+because the regression value is normalized during training and we should recover it to obtain the final model.
+
+### Evaluation
+`sh examples/FRCNN/zf/test\_frcnn.sh` the will evaluate the performance of voc2007 test data using the trained ZF model.
 
 - First Step of This Shell : Test all voc-2007-test images and output results in a text file.
 - Second Step of This Shell : Compare the results with the ground truth file and calculate the mAP.
 
 ### Detail
 
-Shells and prototxts for different models are listed in the examples/FRCNN and models/FRCNN
+Shells and prototxts for different models are listed in the `examples/FRCNN` and `models/FRCNN`
 
-More details in the code.
+More details in the code:
+- `include/api/FRCNN` and `src/api/FRCNN` for demo and test api
+- `include/caffe/FRCNN` and `src/caffe/FRCNN` contains all codes related to Faster R-CNN
 
 ### Commands, Rebase From Caffe Master
 
@@ -56,38 +78,6 @@ More details in the code.
 - https://D-X-Y@bitbucket.org/D-X-Y/caffe-dev.git
 - When Get `error: RPC failed; result=22, HTTP code = 0`, use `git config http.postBuffer 524288000`, increases git buffer to 500mb
 
-# Caffe
-
-[![Build Status](https://travis-ci.org/BVLC/caffe.svg?branch=master)](https://travis-ci.org/BVLC/caffe)
-[![License](https://img.shields.io/badge/license-BSD-blue.svg)](LICENSE)
-
-Caffe is a deep learning framework made with expression, speed, and modularity in mind.
-It is developed by Berkeley AI Research ([BAIR](http://bair.berkeley.edu))/The Berkeley Vision and Learning Center (BVLC) and community contributors.
-
-Check out the [project site](http://caffe.berkeleyvision.org) for all the details like
-
-- [DIY Deep Learning for Vision with Caffe](https://docs.google.com/presentation/d/1UeKXVgRvvxg9OUdh_UiC5G71UMscNPlvArsWER41PsU/edit#slide=id.p)
-- [Tutorial Documentation](http://caffe.berkeleyvision.org/tutorial/)
-- [BAIR reference models](http://caffe.berkeleyvision.org/model_zoo.html) and the [community model zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo)
-- [Installation instructions](http://caffe.berkeleyvision.org/installation.html)
-
-and step-by-step examples.
-
-## Custom distributions
-
- - [Intel Caffe](https://github.com/BVLC/caffe/tree/intel) (Optimized for CPU and support for multi-node), in particular Xeon processors (HSW, BDW, SKX, Xeon Phi).
-- [OpenCL Caffe](https://github.com/BVLC/caffe/tree/opencl) e.g. for AMD or Intel devices.
-- [Windows Caffe](https://github.com/BVLC/caffe/tree/windows)
-
-## Community
-
-[![Join the chat at https://gitter.im/BVLC/caffe](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/BVLC/caffe?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-Please join the [caffe-users group](https://groups.google.com/forum/#!forum/caffe-users) or [gitter chat](https://gitter.im/BVLC/caffe) to ask questions and talk about methods and models.
-Framework development discussions and thorough bug reports are collected on [Issues](https://github.com/BVLC/caffe/issues).
-
-Happy brewing!
-
 ## License and Citation
 
 Caffe is released under the [BSD 2-Clause license](https://github.com/BVLC/caffe/blob/master/LICENSE).
@@ -100,4 +90,11 @@ Please cite Caffe in your publications if it helps your research:
       Journal = {arXiv preprint arXiv:1408.5093},
       Title = {Caffe: Convolutional Architecture for Fast Feature Embedding},
       Year = {2014}
+    }
+    @inproceedings{girshick2015fast,
+      title={Fast R-CNN},
+      author={Girshick, Ross},
+      booktitle={International Conference on Computer Vision},
+      pages={1440--1448},
+      year={2015}
     }
