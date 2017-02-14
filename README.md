@@ -14,7 +14,7 @@ This repository contains a C++ reimplementation of the Python code([py-faster-rc
 All following steps, you should do these in the `$CAFFE_ROOT` path.
 
 ### Demo
-Using `sh example/FRCNN/demo\_frcnn.sh`, the will process five pictures in the `examples/FRCNN/images`, and put results into `examples/FRCNN/results`.
+Using `sh example/FRCNN/demo_frcnn.sh`, the will process five pictures in the `examples/FRCNN/images`, and put results into `examples/FRCNN/results`.
 
 Note: You should prepare the trained caffemodel into `models/FRCNN`, such as `ZF_faster_rcnn_final.caffemodel` for ZF model.
 
@@ -60,6 +60,11 @@ Shells and prototxts for different models are listed in the `examples/FRCNN` and
 More details in the code:
 - `include/api/FRCNN` and `src/api/FRCNN` for demo and test api
 - `include/caffe/FRCNN` and `src/caffe/FRCNN` contains all codes related to Faster R-CNN
+
+## Two-Stream Convolutional Networks for Action Recognition in Video
+
+See codes `src/caffe/ACTION_REC` and `include/caffe/ACTION_REC`
+
 
 ### Commands, Rebase From Caffe Master
 
