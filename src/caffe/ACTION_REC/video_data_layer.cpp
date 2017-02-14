@@ -70,21 +70,21 @@ void VideoDataLayer<Dtype>:: DataLayerSetUp(const vector<Blob<Dtype>*>& bottom, 
     if (crop_size > 0){
         top[0]->Reshape(batch_size, datum.channels(), crop_size, crop_size);
         //this->prefetch_data_.Reshape(batch_size, datum.channels(), crop_size, crop_size);
-        for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
-            this->prefetch_[i].data_.Reshape(batch_size, datum.channels(), crop_size, crop_size);
+        for (int i = 0; i < this->prefetch_.size(); ++i) {
+            this->prefetch_[i]->data_.Reshape(batch_size, datum.channels(), crop_size, crop_size);
         }
     } else {
         top[0]->Reshape(batch_size, datum.channels(), datum.height(), datum.width());
         //this->prefetch_data_.Reshape(batch_size, datum.channels(), datum.height(), datum.width());
-        for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
-            this->prefetch_[i].data_.Reshape(batch_size, datum.channels(), datum.height(), datum.width());
+        for (int i = 0; i < this->prefetch_.size(); ++i) {
+            this->prefetch_[i]->data_.Reshape(batch_size, datum.channels(), datum.height(), datum.width());
         }
     }
     LOG(INFO) << "output data size: " << top[0]->num() << "," << top[0]->channels() << "," << top[0]->height() << "," << top[0]->width();
 
     top[1]->Reshape(batch_size, 1, 1, 1);
-    for(int i = 0 ; i < this->PREFETCH_COUNT; ++i) {
-        this->prefetch_[i].label_.Reshape(batch_size, 1, 1, 1);
+    for(int i = 0 ; i < this->prefetch_.size(); ++i) {
+        this->prefetch_[i]->label_.Reshape(batch_size, 1, 1, 1);
     }
 
     vector<int> top_shape = this->data_transformer_->InferBlobShape(datum);

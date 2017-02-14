@@ -114,8 +114,8 @@ void FrcnnVidDataLayer<Dtype>::DataLayerSetUp(
   CHECK_GT(max_long_, 0);
 
   top[0]->Reshape(batch_size, 3, max_short_, max_long_);
-  for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
-    this->prefetch_[i].data_.Reshape(batch_size, 3, max_short_, max_long_);
+  for (int i = 0; i < this->prefetch_.size(); ++i) {
+    this->prefetch_[i]->data_.Reshape(batch_size, 3, max_short_, max_long_);
   }
 
   LOG(INFO) << "output data size: " << top[0]->num() << ","
@@ -127,8 +127,8 @@ void FrcnnVidDataLayer<Dtype>::DataLayerSetUp(
   // gt_boxes: label x1 y1 x2 y2
   top[2]->Reshape(batch_size, 5, 1, 1);
 
-  for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
-    this->prefetch_[i].label_.Reshape(batch_size + 1, 5, 1, 1);
+  for (int i = 0; i < this->prefetch_.size(); ++i) {
+    this->prefetch_[i]->label_.Reshape(batch_size + 1, 5, 1, 1);
   }
 
 } 
