@@ -24,6 +24,7 @@ The list of training data is `examples/FRCNN/dataset/voc2007.trainval`.
 The list of testing data is `examples/FRCNN/dataset/voc2007.trainval`.
 
 Create symlinks for the PASCAL VOC dataset `ln -s $YOUR_VOCdevkit_Path $CAFFE_ROOT/VOCdevkit`.
+
 As shown in VGG example `models/FRCNN/vgg16/train_val.proto`, the original pictures should appear at `$CAFFE_ROOT/VOCdevkit/VOC2007/JPEGImages/`. (Check window\_data\_param in FrcnnRoiData)
 
 If you want to train Faster R-CNN on your own dataset, you may prepare custom dataset list.
@@ -37,7 +38,7 @@ label x1 y1 x2 y2 difficulty
 ```
 
 ### Training
-`sh examples/FRCNN/zf/train\_frcnn.sh` will start training process of voc2007 data using ZF model.
+`sh examples/FRCNN/zf/train_frcnn.sh` will start training process of voc2007 data using ZF model.
 
 If you use the provided training script, please make sure:
 - VOCdevkit is within $CAFFE\_ROOT and VOC2007 in within VOCdevkit
@@ -47,7 +48,7 @@ If you use the provided training script, please make sure:
 because the regression value is normalized during training and we should recover it to obtain the final model.
 
 ### Evaluation
-`sh examples/FRCNN/zf/test\_frcnn.sh` the will evaluate the performance of voc2007 test data using the trained ZF model.
+`sh examples/FRCNN/zf/test_frcnn.sh` the will evaluate the performance of voc2007 test data using the trained ZF model.
 
 - First Step of This Shell : Test all voc-2007-test images and output results in a text file.
 - Second Step of This Shell : Compare the results with the ground truth file and calculate the mAP.
