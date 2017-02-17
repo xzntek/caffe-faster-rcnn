@@ -61,11 +61,6 @@ More details in the code:
 - `include/api/FRCNN` and `src/api/FRCNN` for demo and test api
 - `include/caffe/FRCNN` and `src/caffe/FRCNN` contains all codes related to Faster R-CNN
 
-## Two-Stream Convolutional Networks for Action Recognition in Video
-
-See codes `src/caffe/ACTION_REC` and `include/caffe/ACTION_REC`
-
-
 ### Commands, Rebase From Caffe Master
 
 **For synchronous with official caffe**
@@ -81,8 +76,12 @@ See codes `src/caffe/ACTION_REC` and `include/caffe/ACTION_REC`
 - git push -f origin dev
 
 **QA**
-- https://D-X-Y@bitbucket.org/D-X-Y/caffe-dev.git
+- CUB not found, when compile for GPU version, `frcnn_proposal_layer.cu` requires a head file `<cub/cub.cuh>`. CUB is library contained in the official Cuda Toolkit, usually can be found in ` /usr/local/cuda/include/thrust/system/cuda/detail/`. You should add this path in your `Makefile.config` (try `locate 'cub.cuh'` to find cub on your system)
 - When Get `error: RPC failed; result=22, HTTP code = 0`, use `git config http.postBuffer 524288000`, increases git buffer to 500mb
+
+## Two-Stream Convolutional Networks for Action Recognition in Video
+
+See codes `src/caffe/ACTION_REC` and `include/caffe/ACTION_REC`
 
 ## License and Citation
 
