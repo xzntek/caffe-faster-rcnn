@@ -1,4 +1,4 @@
-# Special Feature for This Caffe Repository
+**Special Feature for This Caffe Repository**
 
 - Clone from the official [Caffe](https://github.com/BVLC/caffe), will continuely be up-to-date by the official caffe code
 - Faster rcnn joint train, test and evaluate
@@ -75,8 +75,8 @@ More details in the code:
 - git rebase master 
 - git push -f origin dev
 
-**QA**
-- CUB not found, when compile for GPU version, `frcnn_proposal_layer.cu` requires a head file `<cub/cub.cuh>`. CUB is library contained in the official Cuda Toolkit, usually can be found in ` /usr/local/cuda/include/thrust/system/cuda/detail/`. You should add this path in your `Makefile.config` (try `locate 'cub.cuh'` to find cub on your system)
+## QA
+- CUB not found, when compile for GPU version, `frcnn_proposal_layer.cu` requires a head file `<cub/cub.cuh>`. CUB is library contained in the official Cuda Toolkit, usually can be found in ` /usr/local/cuda/include/thrust/system/cuda/detail/`. You should add this path in your `Makefile.config` (try `locate ''cub.cuh''` to find cub on your system)
 - When Get `error: RPC failed; result=22, HTTP code = 0`, use `git config http.postBuffer 524288000`, increases git buffer to 500mb
 
 ## Two-Stream Convolutional Networks for Action Recognition in Video
