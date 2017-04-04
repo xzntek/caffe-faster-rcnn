@@ -1,4 +1,4 @@
-#ifndef CAFFE_FRCNN_GPN_NMS_HPP_
+#ifndef CAFFE_FRCNN_GPU_NMS_HPP_
 #define CAFFE_FRCNN_GPU_NMS_HPP_
 
 namespace caffe {
