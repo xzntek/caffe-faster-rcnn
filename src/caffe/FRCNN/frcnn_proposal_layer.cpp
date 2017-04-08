@@ -128,7 +128,7 @@ void FrcnnProposalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype> *> &bottom,
   std::sort(sort_vector.begin(), sort_vector.end(), std::greater<sort_pair>());
   const int n_anchors = std::min((int)sort_vector.size(), rpn_pre_nms_top_n);
   sort_vector.erase(sort_vector.begin() + n_anchors, sort_vector.end());
-  anchors.erase(anchors.begin() + n_anchors, anchors.end());
+  //anchors.erase(anchors.begin() + n_anchors, anchors.end());
   std::vector<bool> select(n_anchors, true);
 
   // apply nms
