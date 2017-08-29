@@ -35,7 +35,7 @@ set_target_properties(caffe PROPERTIES
     VERSION   ${CAFFE_TARGET_VERSION}
     SOVERSION ${CAFFE_TARGET_SOVERSION}
     )
-
+ add_subdirectory(FRCNN)
 # ---[ Tests
  add_subdirectory(test)
 
@@ -47,4 +47,3 @@ install(TARGETS caffe caffeproto EXPORT CaffeTargets DESTINATION ${CMAKE_INSTALL
 file(WRITE ${PROJECT_BINARY_DIR}/__init__.py)
 list(APPEND proto_python ${PROJECT_BINARY_DIR}/__init__.py)
 install(PROGRAMS ${proto_python} DESTINATION python/caffe/proto)
-

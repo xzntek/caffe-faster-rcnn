@@ -78,7 +78,8 @@ if(HAVE_CUDA)
   # pass include pathes to cuda_include_directories()
   set(Caffe_ALL_INCLUDE_DIRS ${Caffe_INCLUDE_DIRS})
   list(REMOVE_ITEM Caffe_ALL_INCLUDE_DIRS PRIVATE PUBLIC)
-  cuda_include_directories(${Caffe_INCLUDE_DIR} ${Caffe_SRC_DIR} ${Caffe_ALL_INCLUDE_DIRS})
+  SET(CUB_INCLUDE_DIRS   "/usr/local/cuda/include/thrust/system/cuda/detail")
+  cuda_include_directories(${Caffe_INCLUDE_DIR} ${Caffe_SRC_DIR} ${Caffe_ALL_INCLUDE_DIRS} ${CUB_INCLUDE_DIRS})
 
   # add definitions to nvcc flags directly
   set(Caffe_ALL_DEFINITIONS ${Caffe_DEFINITIONS})
@@ -94,7 +95,7 @@ add_subdirectory(examples)
 add_subdirectory(python)
 add_subdirectory(matlab)
 add_subdirectory(docs)
-
+add_subdirectory(src/api/FRCNN)
 # ---[ Linter target
 add_custom_target(lint COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/cmake/lint.cmake)
 
