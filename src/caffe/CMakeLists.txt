@@ -35,7 +35,6 @@ set_target_properties(caffe PROPERTIES
     VERSION   ${CAFFE_TARGET_VERSION}
     SOVERSION ${CAFFE_TARGET_SOVERSION}
     )
- add_subdirectory(FRCNN)
 # ---[ Tests
  add_subdirectory(test)
 

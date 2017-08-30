@@ -5,7 +5,7 @@
 #include "caffe/util/signal_handler.h"
 #include "caffe/FRCNN/util/frcnn_vis.hpp"
 #include "api/api.hpp"
-
+#include <chrono>
 DEFINE_string(gpu, "",
     "Optional; run in GPU mode on the given device ID, Empty is CPU");
 DEFINE_string(model, "",
@@ -82,16 +82,21 @@ int main(int argc, char** argv){
   std::string HASH;
   int ids_;
   float minx, miny, w,h;
+  std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
   while ( infile >> fname >> ids_ >> minx >> miny >> w >>h ) {
     otfile << "#\t" << ids_ << "\t" << std::endl;
     for (int ii = 0; ii < 1; ii++) {
       CHECK(fname.find(".jpg") != std::string::npos);
-      caffe::Frcnn::BBox<float> truth(minx,miny,minx+w,miny+h);
+
+      caffe::Frcnn::BBox<float> truth(minx, miny, minx + w, miny+h);
       //      cv::Mat cv_image = cv::imread(image_root + "/" + shot_dir + "/" + image);
       cv::Mat cv_image = cv::imread(fname);
       std::vector<caffe::Frcnn::BBox<float> > results;
+      start = std::chrono::steady_clock::now();
       detector.predict(cv_image, results);
-
+      end = std::chrono::steady_clock::now();
       float image_thresh = 0;
       if ( max_per_image > 0 ) {
         std::vector<float> image_score ;
@@ -107,12 +112,16 @@ int main(int argc, char** argv){
         }
       }
       std::vector<caffe::Frcnn::BBox<float> > filtered_res;
+
       for (size_t obj = 0; obj < results.size(); obj++) {
         if ( results[obj].confidence >= image_thresh ) {
           filtered_res.push_back( results[obj] );
         }
       }
-      std::cout<<"Finished image "<<fname<<std::endl;
+      caffe::Frcnn::BBox<float> best_bb = filtered_res[0];
+      float iou = caffe::Frcnn::get_iou(best_bb, truth);
+
+      std::cout<<"Finished image "<<fname<<" with intersection "<<iou<<" in "<<std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()<<" ms"<<std::endl;
       const int ori_res_size = results.size();
       results = filtered_res;
       for (size_t obj = 0; obj < results.size(); obj++) {

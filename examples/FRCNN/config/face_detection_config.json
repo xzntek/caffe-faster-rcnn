@@ -31,8 +31,8 @@
  "rpn_allowed_border": "0",
 
 
- "test_scales": "600",
- "test_max_size": "1000",
+ "test_scales": "500",
+ "test_max_size": "1024",
  "test_nms": "0.3",
  "test_bbox_reg": "1",
  "test_rpn_nms_thresh": "0.7",
