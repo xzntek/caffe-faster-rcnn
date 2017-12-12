@@ -4,7 +4,7 @@
 - Faster rcnn joint train, test and evaluate
 - Action recognition (Two Stream CNN)
 
-## Faster RCNN
+## [Faster R-CNN](https://arxiv.org/abs/1506.01497)
 
 ### Disclaimer
 The official Faster R-CNN code (written in MATLAB) is [available](https://github.com/ShaoqingRen/faster_rcnn) here. If your goal is to reproduce the results in our NIPS 2015 paper, please use the [official](https://github.com/ShaoqingRen/faster_rcnn) code.
@@ -19,11 +19,9 @@ Using `sh example/FRCNN/demo_frcnn.sh`, the will process five pictures in the `e
 Note: You should prepare the trained caffemodel into `models/FRCNN`, such as `ZF_faster_rcnn_final.caffemodel` for ZF model.
 
 ### Prepare for training and evaluation
-The list of training data is `examples/FRCNN/dataset/voc2007.trainval`.
-
-The list of testing data is `examples/FRCNN/dataset/voc2007.trainval`.
-
-Create symlinks for the PASCAL VOC dataset `ln -s $YOUR_VOCdevkit_Path $CAFFE_ROOT/VOCdevkit`.
+- The list of training data is `examples/FRCNN/dataset/voc2007.trainval`.
+- The list of testing data is `examples/FRCNN/dataset/voc2007.test`.
+- Create symlinks for the PASCAL VOC dataset `ln -s $YOUR_VOCdevkit_Path $CAFFE_ROOT/VOCdevkit`.
 
 As shown in VGG example `models/FRCNN/vgg16/train_val.proto`, the original pictures should appear at `$CAFFE_ROOT/VOCdevkit/VOC2007/JPEGImages/`. (Check window\_data\_param in FrcnnRoiData)
 
@@ -36,6 +34,8 @@ number of boxes
 label x1 y1 x2 y2 difficulty
 ...
 ```
+
+- The ImageNet pre-trained models can be found in [this link](https://drive.google.com/drive/folders/1xjFL-ZeVzXkY584ZsEnr9O6O3P1Ypjwd?usp=sharing)
 
 ### Training
 `sh examples/FRCNN/zf/train_frcnn.sh` will start training process of voc2007 data using ZF model.
@@ -102,4 +102,21 @@ Please cite Caffe in your publications if it helps your research:
       booktitle={International Conference on Computer Vision},
       pages={1440--1448},
       year={2015}
+    }
+    @inproceedings{ren2015faster,
+      title={Faster {R-CNN}: Towards real-time object detection with region proposal networks},
+      author={Ren, Shaoqing and He, Kaiming and Girshick, Ross and Sun, Jian},
+      booktitle={Neural Information Processing Systems},
+      pages={91--99},
+      year={2015}
+    }
+    @article{ren2017faster,
+      title={Faster {R-CNN}: Towards real-time object detection with region proposal networks},
+      author={Ren, Shaoqing and He, Kaiming and Girshick, Ross and Sun, Jian},
+      journal={IEEE Transactions on Pattern Analysis and Machine Intelligence},
+      volume={39},
+      number={6},
+      pages={1137--1149},
+      year={2017},
+      publisher={IEEE}
     }
